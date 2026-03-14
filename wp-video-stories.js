@@ -1,29 +1,28 @@
 /**
- * WP Video Stories — Carrousel horizontal
- * ========================================
+ * WP Video Stories — Cercles + Lightbox slider
+ * =============================================
  * Insertion : via un bloc HTML personnalisé WordPress
  *
  * FONCTIONNALITÉS :
- * - Un seul bloc vidéo, défilement horizontal story par story
- * - Navigation manuelle (flèches + swipe tactile)
- * - Auto-avance configurable (passage auto à la story suivante)
- * - Barre de progression par story
+ * - Affichage initial léger : rangée de cercles cliquables (poster + titre)
+ * - Clic → lightbox plein écran avec slider horizontal
+ * - Vidéos chargées uniquement à l'ouverture (lazy load total)
+ * - Navigation manuelle (swipe + flèches desktop)
+ * - Auto-avance en fin de vidéo
+ * - Barre de progression calée sur la durée réelle
  * - Bouton mute/unmute
- * - Lecture auto + pause hors focus
- * - Lazy loading de la vidéo suivante
- * - Responsive (pleine largeur mobile, centré desktop)
+ * - Fermeture lightbox par bouton X ou touche Escape
+ * - Mobile-first responsive
  *
  * UTILISATION :
  * <div data-wp-video-stories>
  *   <div class="vs-story-data"
  *     data-video="url.mp4"
- *     data-poster="url.jpg"
- *     data-user="Prénom N."
- *     data-avatar="avatar.jpg"   <!-- optionnel -->
- *     data-caption="Texte..."
- *     data-color="#534AB7">      <!-- couleur avatar fallback -->
+ *     data-poster="url.jpg"        (placeholder vidéo — plein format)
+ *     data-thumb="url.jpg"         (optionnel — image du cercle, carré recommandé)
+ *     data-title="Titre court"     (optionnel — affiché sous le cercle)
+ *     data-caption="Texte long…"> (affiché dans la lightbox)
  *   </div>
- *   ...
  * </div>
  */
 
@@ -32,40 +31,129 @@
 
   /* ─── CONFIGURATION ─── */
   const CONFIG = {
-    autoplay       : true,   // Lecture auto dès que visible
-    muted          : true,   // Muet au démarrage (requis pour autoplay)
-    autoAdvance    : true,   // Passer auto à la story suivante en fin de vidéo
-    autoAdvanceMs  : 8000,   // Durée max par story si la vidéo est plus courte
-    showProgress   : true,   // Barre de progression
-    showNavArrows  : true,   // Flèches prev/next
+    autoplay      : true,   // Lecture auto à l'ouverture
+    muted         : true,   // Muet au démarrage (requis pour autoplay)
+    autoAdvance   : true,   // Avancer auto en fin de vidéo
+    autoAdvanceMs : 15000,  // Fallback si la vidéo ne se charge pas
+    showProgress  : true,   // Barre de progression
+    showNavArrows : true,   // Flèches prev/next (desktop)
   };
 
   /* ─── ICÔNES SVG ─── */
   const ICONS = {
-    play    : '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
-    pause   : '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
-    mute    : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2"/><line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2"/></svg>',
-    unmute  : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
-    prev    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>',
-    next    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>',
+    play   : '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+    mute   : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2"/><line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2"/></svg>',
+    unmute : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+    prev   : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>',
+    next   : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>',
+    close  : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   };
 
-  /* ─── CSS INJECTÉ UNE SEULE FOIS (mobile-first) ─── */
+  /* ─── CSS (injecté une seule fois) ─── */
   const CSS = `
 
-    /* ── BASE MOBILE ── */
+    /* ══ CERCLES ══ */
 
+    .vs-circles-wrapper {
+      width: 100%;
+    }
+
+    .vs-circles {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 10px 4px 14px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .vs-circles::-webkit-scrollbar { display: none; }
+
+    .vs-circle-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* Anneau dégradé */
+    .vs-circle-ring {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform .15s;
+    }
+    .vs-circle-item:active .vs-circle-ring { transform: scale(.9); }
+
+    /* Zone image à l'intérieur de l'anneau */
+    .vs-circle-inner {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #333;
+    }
+    .vs-circle-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Titre sous le cercle */
+    .vs-circle-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #fff;
+      text-align: center;
+      max-width: 68px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+
+    /* ══ LIGHTBOX ══ */
+
+    .vs-lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.92);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease;
+    }
+    .vs-lightbox.vs-open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+
+    /* ══ SLIDER (dans la lightbox) ══ */
+
+    /* Mobile : plein écran */
     .vs-wrapper {
       position: relative;
       width: 100%;
-      height: 100svh;           /* plein écran mobile */
+      height: 100svh;
       background: #000;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      /* pas de border-radius sur mobile */
     }
 
-    /* Piste horizontale */
     .vs-track {
       display: flex;
       width: 100%;
@@ -73,22 +161,21 @@
       overflow-x: scroll;
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x;
     }
     .vs-track::-webkit-scrollbar { display: none; }
 
-    /* Slide */
     .vs-slide {
       position: relative;
       flex: 0 0 100%;
       width: 100%;
       height: 100%;
       scroll-snap-align: start;
+      scroll-snap-stop: always;
       overflow: hidden;
       cursor: pointer;
     }
 
-    /* Vidéo */
     .vs-video {
       position: absolute;
       inset: 0;
@@ -97,7 +184,6 @@
       object-fit: cover;
     }
 
-    /* Gradient overlay */
     .vs-overlay {
       position: absolute;
       inset: 0;
@@ -111,7 +197,6 @@
       pointer-events: none;
     }
 
-    /* Infos utilisateur + caption */
     .vs-info {
       position: absolute;
       bottom: 0;
@@ -121,39 +206,14 @@
       color: #fff;
       pointer-events: none;
     }
-    .vs-user {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-    .vs-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,.85);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 11px;
-      color: #fff;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-    .vs-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .vs-username {
-      font-weight: 600;
-      font-size: 13px;
-      text-shadow: 0 1px 5px rgba(0,0,0,.55);
-    }
     .vs-caption {
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.45;
       text-shadow: 0 1px 5px rgba(0,0,0,.55);
+      margin: 0;
     }
 
-    /* Indicateur play/pause central */
+    /* Indicateur play/pause */
     .vs-play-indicator {
       position: absolute;
       top: 50%;
@@ -183,7 +243,7 @@
       position: absolute;
       top: 10px;
       left: 8px;
-      right: 8px;
+      right: 46px;    /* espace pour le bouton fermer */
       display: flex;
       gap: 3px;
       z-index: 10;
@@ -202,19 +262,18 @@
       background: #fff;
       border-radius: 2px;
     }
-    /* largeurs gérées exclusivement en inline style par JS */
 
-    /* Bouton mute */
-    .vs-mute-btn {
+    /* Bouton fermer */
+    .vs-close-btn {
       position: absolute;
-      top: 28px;
-      right: 10px;
-      z-index: 10;
-      width: 32px;
-      height: 32px;
+      top: 6px;
+      right: 8px;
+      z-index: 20;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       border: none;
-      background: rgba(0,0,0,.48);
+      background: rgba(0,0,0,.45);
       color: #fff;
       cursor: pointer;
       display: flex;
@@ -223,35 +282,46 @@
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
     }
-    .vs-mute-btn svg { width: 15px; height: 15px; }
+    .vs-close-btn svg { width: 16px; height: 16px; }
 
-    /* Flèches nav — masquées sur mobile (navigation par swipe) */
-    .vs-nav-btn {
-      display: none;
+    /* Bouton mute */
+    .vs-mute-btn {
+      position: absolute;
+      top: 48px;
+      right: 8px;
+      z-index: 10;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,.45);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
+    .vs-mute-btn svg { width: 16px; height: 16px; }
 
-    /* ── TABLET 640px ── */
+    /* Flèches nav — masquées sur mobile */
+    .vs-nav-btn { display: none; }
+
+
+    /* ══ TABLET 640px ══ */
     @media (min-width: 640px) {
+      .vs-lightbox { padding: 20px; }
+
       .vs-wrapper {
         height: auto;
         aspect-ratio: 9/16;
         max-width: 360px;
-        margin: 0 auto;
         border-radius: 14px;
       }
 
-      .vs-info    { padding: 16px 16px 26px; }
-      .vs-avatar  { width: 38px; height: 38px; font-size: 12px; }
-      .vs-username{ font-size: 14px; }
       .vs-caption { font-size: 13px; }
 
-      .vs-progress-bar { top: 12px; left: 10px; right: 10px; gap: 4px; }
-      .vs-progress-seg { height: 3px; }
-
-      .vs-mute-btn { top: 32px; right: 12px; width: 34px; height: 34px; }
-      .vs-mute-btn svg { width: 16px; height: 16px; }
-
-      /* Flèches visibles à partir de la tablette */
       .vs-nav-btn {
         display: flex;
         position: absolute;
@@ -268,7 +338,6 @@
         align-items: center;
         justify-content: center;
         backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
         transition: opacity .2s;
       }
       .vs-nav-btn svg { width: 20px; height: 20px; }
@@ -277,123 +346,183 @@
       .vs-next { right: 10px; }
     }
 
-    /* ── DESKTOP 1024px ── */
+    /* ══ DESKTOP 1024px ══ */
     @media (min-width: 1024px) {
       .vs-wrapper {
         max-width: 420px;
         border-radius: 18px;
-        box-shadow: 0 24px 70px rgba(0,0,0,.6);
+        box-shadow: 0 24px 70px rgba(0,0,0,.7);
       }
-
-      .vs-play-indicator { width: 66px; height: 66px; }
-      .vs-play-indicator svg { width: 28px; height: 28px; }
-
-      .vs-mute-btn { top: 34px; right: 12px; width: 36px; height: 36px; }
-      .vs-mute-btn svg { width: 17px; height: 17px; }
-
-      .vs-nav-btn { width: 40px; height: 40px; }
     }
   `;
 
-  /* Injection CSS globale (une seule fois) */
   if (!document.getElementById("vs-styles")) {
-    const style = document.createElement("style");
-    style.id = "vs-styles";
-    style.textContent = CSS;
-    document.head.appendChild(style);
+    const s = document.createElement("style");
+    s.id = "vs-styles";
+    s.textContent = CSS;
+    document.head.appendChild(s);
   }
+
 
   /* ═══════════════════════════════════════════
      CLASSE PRINCIPALE
   ═══════════════════════════════════════════ */
   class WPVideoStories {
-    constructor(container) {
-      this.container    = container;
-      this.stories      = [];
-      this.currentIndex = 0;
-      this.isMuted      = CONFIG.muted;
+    constructor(container, groups) {
+      this.container           = container;
+      this.groups              = groups || [];
+      this.activeStories       = [];
+      this.currentIndex        = 0;
+      this.isMuted             = CONFIG.muted;
       this.autoTimer           = null;
-      this.rafId               = null;
-      this.progStart           = 0;
+      this._progCleanup        = null;
       this._programmaticScroll = false;
+      this._swiping            = false;
+      this._lightbox           = null;
+      this._lightboxOpen       = false;
+      this.track               = null;
+      this.progressBar         = null;
 
       this.init();
     }
 
     init() {
-      this.parseStories();
-      if (this.stories.length === 0) return;
-      this.buildDOM();
-      this.setupScrollSnap();
-      this.setupEventListeners();
-      this.updateUI();
-      this.playStory(0);
+      if (this.groups.length === 0) return;
+      this.buildCircles();
     }
 
-    /* ── Lecture des data-attributes ── */
-    parseStories() {
-      this.container.querySelectorAll(".vs-story-data").forEach((el, i) => {
-        this.stories.push({
-          index     : i,
-          videoSrc  : el.dataset.video   || "",
-          posterSrc : el.dataset.poster  || "",
-          userName  : el.dataset.user    || "",
-          userAvatar: el.dataset.avatar  || "",
-          caption   : el.dataset.caption || "",
-          color     : el.dataset.color   || "#534AB7",
-        });
+
+
+    /* ══════════════════════════════════════════
+       CERCLES D'APERÇU
+    ══════════════════════════════════════════ */
+    buildCircles() {
+      const row = this.container.querySelector(".vs-circles");
+      if (!row) return;
+
+      this.groups.forEach((group, i) => {
+        const item = group.circleItem;
+        if (!item) return;
+        item.style.cursor = "pointer";
+        item.addEventListener("click", () => this.openLightboxGroup(i));
+        row.appendChild(item);
       });
     }
 
-    /* ── Construction du DOM ── */
-    buildDOM() {
-      this.container.innerHTML = "";
-      this.container.classList.add("vs-wrapper");
+
+    /* ══════════════════════════════════════════
+       LIGHTBOX + SLIDER (créés une seule fois)
+    ══════════════════════════════════════════ */
+    buildLightbox() {
+      if (this._lightbox) return;
+
+      /* Overlay */
+      const lb = document.createElement("div");
+      lb.className = "vs-lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+
+      /* Fermer au clic sur le fond */
+      lb.addEventListener("click", (e) => {
+        if (e.target === lb) this.closeLightbox();
+      });
+
+      /* Fermer à Escape */
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && this._lightboxOpen) this.closeLightbox();
+      });
+
+      /* Wrapper slider */
+      const wrapper = document.createElement("div");
+      wrapper.className = "vs-wrapper";
 
       /* Piste */
       this.track = document.createElement("div");
       this.track.className = "vs-track";
 
-      this.stories.forEach((story, i) => {
+      wrapper.appendChild(this.track);
+
+      /* Barre de progression — segments remplis à l'ouverture */
+      if (CONFIG.showProgress) {
+        this.progressBar = document.createElement("div");
+        this.progressBar.className = "vs-progress-bar";
+        wrapper.appendChild(this.progressBar);
+      }
+
+      /* Bouton fermer */
+      const closeBtn = document.createElement("button");
+      closeBtn.className = "vs-close-btn";
+      closeBtn.setAttribute("aria-label", "Fermer");
+      closeBtn.innerHTML = ICONS.close;
+      closeBtn.addEventListener("click", () => this.closeLightbox());
+      wrapper.appendChild(closeBtn);
+
+      /* Bouton mute */
+      this.muteBtn = document.createElement("button");
+      this.muteBtn.className = "vs-mute-btn";
+      this.muteBtn.setAttribute("aria-label", "Son");
+      this.muteBtn.innerHTML = this.isMuted ? ICONS.mute : ICONS.unmute;
+      wrapper.appendChild(this.muteBtn);
+
+      /* Flèches */
+      if (CONFIG.showNavArrows) {
+        this.btnPrev = document.createElement("button");
+        this.btnPrev.className = "vs-nav-btn vs-prev";
+        this.btnPrev.setAttribute("aria-label", "Précédent");
+        this.btnPrev.innerHTML = ICONS.prev;
+        wrapper.appendChild(this.btnPrev);
+
+        this.btnNext = document.createElement("button");
+        this.btnNext.className = "vs-nav-btn vs-next";
+        this.btnNext.setAttribute("aria-label", "Suivant");
+        this.btnNext.innerHTML = ICONS.next;
+        wrapper.appendChild(this.btnNext);
+      }
+
+      lb.appendChild(wrapper);
+      document.body.appendChild(lb);
+      this._lightbox = lb;
+
+      this.setupScrollSnap();
+      this.setupEventListeners();
+    }
+
+
+    /* ══════════════════════════════════════════
+       CONSTRUCTION DES SLIDES PAR GROUPE
+    ══════════════════════════════════════════ */
+    _buildGroupSlides(stories) {
+      /* Vider les slides et vidéos précédentes */
+      this.track.querySelectorAll(".vs-video").forEach(v => { v.pause(); v.src = ""; });
+      this.track.innerHTML = "";
+
+      stories.forEach((story, i) => {
         const slide = document.createElement("div");
-        slide.className = "vs-slide";
+        slide.className     = "vs-slide";
         slide.dataset.index = i;
 
-        /* Vidéo */
         const video = document.createElement("video");
-        video.className = "vs-video";
-        video.src       = story.videoSrc;
-        video.poster    = story.posterSrc;
-        video.muted     = this.isMuted;
-        video.loop      = false;
+        video.className   = "vs-video";
+        video.poster      = story.posterSrc;
+        video.muted       = this.isMuted;
+        video.loop        = false;
         video.playsInline = true;
-        video.preload   = i === 0 ? "auto" : "none";
+        video.preload     = "none";
         video.setAttribute("playsinline", "");
         video.setAttribute("webkit-playsinline", "");
         slide.appendChild(video);
 
-        /* Overlay */
         const overlay = document.createElement("div");
         overlay.className = "vs-overlay";
         slide.appendChild(overlay);
 
-        /* Infos */
-        const info = document.createElement("div");
-        info.className = "vs-info";
-        info.innerHTML = `
-          <div class="vs-user">
-            <div class="vs-avatar" style="background:${story.color}">
-              ${story.userAvatar
-                ? `<img src="${story.userAvatar}" alt="${story.userName}">`
-                : this._initials(story.userName)}
-            </div>
-            <span class="vs-username">${story.userName}</span>
-          </div>
-          <p class="vs-caption">${story.caption}</p>
-        `;
-        slide.appendChild(info);
+        if (story.caption) {
+          const info = document.createElement("div");
+          info.className = "vs-info";
+          info.innerHTML = `<p class="vs-caption">${story.caption}</p>`;
+          slide.appendChild(info);
+        }
 
-        /* Indicateur play/pause */
         const pi = document.createElement("div");
         pi.className = "vs-play-indicator";
         pi.innerHTML = ICONS.play;
@@ -402,68 +531,110 @@
         this.track.appendChild(slide);
       });
 
-      this.container.appendChild(this.track);
-
-      /* Barre de progression */
-      if (CONFIG.showProgress) {
-        this.progressBar = document.createElement("div");
-        this.progressBar.className = "vs-progress-bar";
-        this.stories.forEach((_, i) => {
+      /* Reconstruire les segments de progression */
+      if (CONFIG.showProgress && this.progressBar) {
+        this.progressBar.innerHTML = "";
+        stories.forEach((_, i) => {
           const seg  = document.createElement("div");
-          seg.className = "vs-progress-seg";
+          seg.className     = "vs-progress-seg";
           seg.dataset.index = i;
           const fill = document.createElement("div");
           fill.className = "vs-progress-fill";
           seg.appendChild(fill);
           this.progressBar.appendChild(seg);
         });
-        this.container.appendChild(this.progressBar);
-      }
-
-      /* Bouton mute */
-      this.muteBtn = document.createElement("button");
-      this.muteBtn.className = "vs-mute-btn";
-      this.muteBtn.setAttribute("aria-label", "Son");
-      this.muteBtn.innerHTML = this.isMuted ? ICONS.mute : ICONS.unmute;
-      this.container.appendChild(this.muteBtn);
-
-      /* Flèches */
-      if (CONFIG.showNavArrows) {
-        this.btnPrev = document.createElement("button");
-        this.btnPrev.className = "vs-nav-btn vs-prev";
-        this.btnPrev.setAttribute("aria-label", "Précédent");
-        this.btnPrev.innerHTML = ICONS.prev;
-        this.container.appendChild(this.btnPrev);
-
-        this.btnNext = document.createElement("button");
-        this.btnNext.className = "vs-nav-btn vs-next";
-        this.btnNext.setAttribute("aria-label", "Suivant");
-        this.btnNext.innerHTML = ICONS.next;
-        this.container.appendChild(this.btnNext);
       }
     }
 
-    /* ── Scroll snap : détection swipe manuel ── */
-    setupScrollSnap() {
-      let t;
-      this.track.addEventListener("scroll", () => {
-        if (this._programmaticScroll) return; // ignorer les scrolls déclenchés par goTo()
-        clearTimeout(t);
-        t = setTimeout(() => {
-          const idx = Math.round(this.track.scrollLeft / this.track.clientWidth);
-          if (idx !== this.currentIndex) {
-            this._pauseCurrent();
-            this.currentIndex = idx;
-            this._lazyLoadNext();
-            this.updateUI();
-            this.playStory(idx); // pas de scrollTo — le swipe l'a déjà fait
-          }
-        }, 200); // 200ms : laisse le snap CSS se stabiliser
+
+    /* ══════════════════════════════════════════
+       OUVRIR / FERMER LIGHTBOX
+    ══════════════════════════════════════════ */
+    openLightboxGroup(groupIndex) {
+      this.buildLightbox(); // no-op si déjà construite
+
+      this._clearAutoTimer();
+      this._clearProgTimer();
+
+      /* Charger les stories du groupe actif */
+      this.activeStories = this.groups[groupIndex].stories;
+      this._buildGroupSlides(this.activeStories);
+      this.currentIndex = 0;
+
+      /* Charger les deux premières vidéos */
+      this._loadVideoSrc(0);
+      this._loadVideoSrc(1);
+
+      /* Afficher */
+      this._lightboxOpen = true;
+      this._lightbox.classList.add("vs-open");
+      document.body.style.overflow = "hidden";
+
+      requestAnimationFrame(() => {
+        this.track.scrollLeft = 0;
+        this.updateUI();
+        this.playStory(0);
       });
     }
 
-    /* ── Événements ── */
+    closeLightbox() {
+      if (!this._lightboxOpen) return;
+      this._pauseCurrent();
+      this._lightboxOpen = false;
+      this._lightbox.classList.remove("vs-open");
+      document.body.style.overflow = "";
+    }
+
+    /* Charge le src d'une vidéo si pas encore fait */
+    _loadVideoSrc(i) {
+      if (i < 0 || i >= this.activeStories.length) return;
+      const video = this._videoAt(i);
+      if (video && !video.src) {
+        video.src     = this.activeStories[i].videoSrc;
+        video.preload = "auto";
+      }
+    }
+
+
+    /* ══════════════════════════════════════════
+       SCROLL SNAP (swipe mobile)
+    ══════════════════════════════════════════ */
+    setupScrollSnap() {
+      const onSnapDone = () => {
+        if (this._programmaticScroll) return;
+        const idx = Math.round(this.track.scrollLeft / this.track.clientWidth);
+        if (idx !== this.currentIndex) {
+          this._pauseCurrent();
+          this.currentIndex = idx;
+          this._loadVideoSrc(idx);
+          this._loadVideoSrc(idx + 1);
+          this.updateUI();
+          this.playStory(idx);
+        }
+      };
+
+      if ("onscrollend" in window) {
+        this.track.addEventListener("scrollend", onSnapDone);
+      } else {
+        let t;
+        this.track.addEventListener("scroll", () => {
+          if (this._programmaticScroll) return;
+          clearTimeout(t);
+          t = setTimeout(onSnapDone, 350);
+        });
+      }
+    }
+
+
+    /* ══════════════════════════════════════════
+       ÉVÉNEMENTS
+    ══════════════════════════════════════════ */
     setupEventListeners() {
+      /* Détection swipe → empêche le click post-swipe */
+      this._swiping = false;
+      this.track.addEventListener("touchstart", () => { this._swiping = false; }, { passive: true });
+      this.track.addEventListener("touchmove",  () => { this._swiping = true;  }, { passive: true });
+
       /* Mute */
       this.muteBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -485,6 +656,9 @@
 
         slide.addEventListener("click", (e) => {
           if (e.target.closest("button")) return;
+          if (this._swiping) return;
+          if (parseInt(slide.dataset.index) !== this.currentIndex) return;
+
           if (video.paused) {
             video.play().catch(() => {});
             pi.classList.remove("vs-show");
@@ -506,81 +680,88 @@
       });
     }
 
-    /* ── Navigation (flèches / auto) ── */
+
+    /* ══════════════════════════════════════════
+       NAVIGATION
+    ══════════════════════════════════════════ */
     goTo(index) {
-      if (index < 0 || index >= this.stories.length) return;
+      if (index < 0 || index >= this.activeStories.length) return;
       this._pauseCurrent();
       this.currentIndex = index;
-      // scrollTo programmatique — on lève le flag pour ignorer l'événement scroll
+
       this._programmaticScroll = true;
+      const unlock = () => { this._programmaticScroll = false; };
+      if ("onscrollend" in window) {
+        this.track.addEventListener("scrollend", unlock, { once: true });
+      }
+      setTimeout(unlock, 500);
+
       this.track.scrollTo({ left: this.track.clientWidth * index, behavior: "smooth" });
-      setTimeout(() => { this._programmaticScroll = false; }, 400);
-      this._lazyLoadNext();
+      this._loadVideoSrc(index);
+      this._loadVideoSrc(index + 1);
       this.updateUI();
       this.playStory(index);
     }
 
-    next() { this.goTo(this.currentIndex + 1 < this.stories.length ? this.currentIndex + 1 : 0); }
-    prev() { this.goTo(this.currentIndex - 1 >= 0 ? this.currentIndex - 1 : this.stories.length - 1); }
+    next() { if (this.currentIndex + 1 < this.activeStories.length) this.goTo(this.currentIndex + 1); }
+    prev() { if (this.currentIndex - 1 >= 0) this.goTo(this.currentIndex - 1); }
 
+
+    /* ══════════════════════════════════════════
+       LECTURE
+    ══════════════════════════════════════════ */
     playStory(index) {
       const video = this._videoAt(index);
       if (!video) return;
 
-      // Remettre la barre du slide courant à 0 avant de jouer
       if (CONFIG.showProgress) {
         const fill = this.progressBar.querySelector(`.vs-progress-seg[data-index="${index}"] .vs-progress-fill`);
         if (fill) fill.style.width = "0%";
       }
 
-      video.muted = this.isMuted;
+      video.muted       = this.isMuted;
       video.currentTime = 0;
       if (CONFIG.autoplay) video.play().catch(() => {});
       this._startProgTimer();
       if (CONFIG.autoAdvance) this._startAutoTimer();
     }
 
-    /* ── UI ── */
+
+    /* ══════════════════════════════════════════
+       UI
+    ══════════════════════════════════════════ */
     updateUI() {
-      if (CONFIG.showNavArrows) {
+      if (CONFIG.showNavArrows && this.btnPrev && this.btnNext) {
         this.btnPrev.classList.toggle("vs-hidden", this.currentIndex === 0);
-        this.btnNext.classList.toggle("vs-hidden", this.currentIndex === this.stories.length - 1);
+        this.btnNext.classList.toggle("vs-hidden", this.currentIndex === this.activeStories.length - 1);
       }
-      if (CONFIG.showProgress) {
+      if (CONFIG.showProgress && this.progressBar) {
         this.progressBar.querySelectorAll(".vs-progress-seg").forEach((seg) => {
           const i    = parseInt(seg.dataset.index);
           const fill = seg.querySelector(".vs-progress-fill");
-          if (i < this.currentIndex) {
-            fill.style.width = "100%";   // passé  → plein
-          } else if (i > this.currentIndex) {
-            fill.style.width = "0%";     // futur  → vide
-          }
-          // i === currentIndex : laissé à 0% par playStory puis animé par timeupdate
+          if (i < this.currentIndex)      fill.style.width = "100%";
+          else if (i > this.currentIndex) fill.style.width = "0%";
         });
       }
-      /* Reset indicateurs play */
-      this.track.querySelectorAll(".vs-play-indicator").forEach(pi => pi.classList.remove("vs-show"));
+      if (this.track) {
+        this.track.querySelectorAll(".vs-play-indicator").forEach(pi => pi.classList.remove("vs-show"));
+      }
     }
 
-    /* ── Timer auto-avance (filet de sécurité si la vidéo ne se charge pas) ── */
+
+    /* ══════════════════════════════════════════
+       TIMERS
+    ══════════════════════════════════════════ */
     _startAutoTimer() {
       this._clearAutoTimer();
       if (!CONFIG.autoAdvance) return;
-      // L'événement "ended" gère l'avance normale.
-      // Ce timeout est un fallback si la vidéo ne démarre pas.
       this.autoTimer = setTimeout(() => this.next(), CONFIG.autoAdvanceMs);
     }
+    _clearAutoTimer() { clearTimeout(this.autoTimer); this.autoTimer = null; }
 
-    _clearAutoTimer() {
-      clearTimeout(this.autoTimer);
-      this.autoTimer = null;
-    }
-
-    /* ── Barre de progression — calée sur la durée réelle de la vidéo ── */
     _startProgTimer() {
       this._clearProgTimer();
-      if (!CONFIG.showProgress) return;
-
+      if (!CONFIG.showProgress || !this.progressBar) return;
       const video = this._videoAt(this.currentIndex);
       const seg   = this.progressBar.querySelector(`.vs-progress-seg[data-index="${this.currentIndex}"]`);
       if (!seg || !video) return;
@@ -590,24 +771,17 @@
         if (!video.duration) return;
         fill.style.width = Math.min((video.currentTime / video.duration) * 100, 100) + "%";
       };
-
       video.addEventListener("timeupdate", onTime);
       this._progCleanup = () => video.removeEventListener("timeupdate", onTime);
     }
-
     _clearProgTimer() {
       if (this._progCleanup) { this._progCleanup(); this._progCleanup = null; }
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
     }
 
-    /* ── Lazy load ── */
-    _lazyLoadNext() {
-      const next = this._videoAt(this.currentIndex + 1);
-      if (next && next.preload === "none") next.preload = "auto";
-    }
 
-    /* ── Helpers ── */
+    /* ══════════════════════════════════════════
+       HELPERS
+    ══════════════════════════════════════════ */
     _pauseCurrent() {
       const v = this._videoAt(this.currentIndex);
       if (v) v.pause();
@@ -616,26 +790,53 @@
     }
 
     _videoAt(i) {
-      return this.track.querySelectorAll(".vs-video")[i] || null;
+      return this.track ? this.track.querySelectorAll(".vs-video")[i] || null : null;
     }
 
-    _initials(name) {
-      return name.split(" ").map(w => w[0]).join("").toUpperCase().substring(0, 2);
-    }
-
-    /* ── Nettoyage ── */
     destroy() {
       this._clearAutoTimer();
       this._clearProgTimer();
-      this.track.querySelectorAll(".vs-video").forEach(v => { v.pause(); v.src = ""; });
+      if (this.track) {
+        this.track.querySelectorAll(".vs-video").forEach(v => { v.pause(); v.src = ""; });
+      }
+      if (this._lightbox) this._lightbox.remove();
+      document.body.style.overflow = "";
     }
   }
 
+
   /* ─── INITIALISATION AUTOMATIQUE ─── */
   function initAllStories() {
-    document.querySelectorAll("[data-wp-video-stories]").forEach((el) => {
-      if (!el._vsInstance) el._vsInstance = new WPVideoStories(el);
+    const blocks = [...document.querySelectorAll("[data-wp-video-stories]")];
+    if (blocks.length === 0) return;
+
+    /* Construire les groupes — un groupe par bloc */
+    const groups = blocks.map((block) => {
+      const circleItem = block.querySelector(".vs-circle-item");
+      const stories = [...block.querySelectorAll(".vs-story-data")].map((el, i) => ({
+        index    : i,
+        videoSrc : el.dataset.video   || "",
+        posterSrc: el.dataset.poster  || "",
+        thumbSrc : el.dataset.thumb   || el.dataset.poster || "",
+        title    : el.dataset.title   || "",
+        caption  : el.dataset.caption || "",
+      }));
+      return { circleItem, stories };
     });
+
+    /* Conteneur combiné avec uniquement la rangée de cercles */
+    const combined = document.createElement("div");
+    combined.setAttribute("data-wp-video-stories", "");
+
+    const circlesDiv = document.createElement("div");
+    circlesDiv.className = "vs-circles";
+    combined.appendChild(circlesDiv);
+
+    /* Insérer avant le premier bloc, supprimer les blocs originaux */
+    blocks[0].parentNode.insertBefore(combined, blocks[0]);
+    blocks.forEach((b) => b.remove());
+
+    combined._vsInstance = new WPVideoStories(combined, groups);
   }
 
   if (document.readyState === "loading") {
