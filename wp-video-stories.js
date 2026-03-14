@@ -157,6 +157,7 @@
     .vs-wrapper {
       position: relative;
       width: 100%;
+      height: 100vh;
       height: 100svh;
       background: #000;
       overflow: hidden;
@@ -363,6 +364,12 @@
         box-shadow: 0 24px 70px rgba(0,0,0,.7);
       }
     }
+
+    /* ══ WORDPRESS ADMIN BAR ══ */
+    .admin-bar .vs-lightbox { top: 32px; }
+    @media screen and (max-width: 782px) {
+      .admin-bar .vs-lightbox { top: 46px; }
+    }
   `;
 
   if (!document.getElementById("vs-styles")) {
@@ -438,10 +445,14 @@
         if (e.target === lb) this.closeLightbox();
       });
 
-      /* Fermer à Escape */
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && this._lightboxOpen) this.closeLightbox();
-      });
+      /* Clavier : Escape ferme, flèches naviguent */
+      this._onKeyDown = (e) => {
+        if (!this._lightboxOpen) return;
+        if (e.key === "Escape")     this.closeLightbox();
+        if (e.key === "ArrowRight") this.next();
+        if (e.key === "ArrowLeft")  this.prev();
+      };
+      document.addEventListener("keydown", this._onKeyDown);
 
       /* Wrapper slider */
       const wrapper = document.createElement("div");
@@ -585,6 +596,7 @@
       this._loadVideoSrc(1);
 
       /* Afficher */
+      this._focusBeforeLightbox = document.activeElement;
       this._lightboxOpen = true;
       this._lightbox.classList.add("vs-open");
       document.body.style.overflow = "hidden";
@@ -593,6 +605,8 @@
         this.track.scrollLeft = 0;
         this.updateUI();
         this.playStory(0);
+        /* Déplacer le focus dans la lightbox pour les lecteurs d'écran */
+        this._lightbox.querySelector(".vs-close-btn")?.focus();
       });
     }
 
@@ -602,6 +616,14 @@
       this._lightboxOpen = false;
       this._lightbox.classList.remove("vs-open");
       document.body.style.overflow = "";
+      /* Reset visuel de la barre de progression */
+      if (this.progressBar) {
+        this.progressBar.querySelectorAll(".vs-progress-fill")
+          .forEach(f => { f.style.width = "0%"; });
+      }
+      /* Restaurer le focus sur l'élément qui a ouvert la lightbox */
+      this._focusBeforeLightbox?.focus();
+      this._focusBeforeLightbox = null;
     }
 
     /* Charge le src d'une vidéo si pas encore fait */
@@ -768,7 +790,11 @@
     _startAutoTimer() {
       this._clearAutoTimer();
       if (!CONFIG.autoAdvance) return;
-      this.autoTimer = setTimeout(() => this.next(), CONFIG.autoAdvanceMs);
+      this.autoTimer = setTimeout(() => {
+        /* N'avance que si la vidéo tourne encore (pas en pause manuelle) */
+        const v = this._videoAt(this.currentIndex);
+        if (!v || !v.paused) this.next();
+      }, CONFIG.autoAdvanceMs);
     }
     _clearAutoTimer() { clearTimeout(this.autoTimer); this.autoTimer = null; }
 
@@ -809,6 +835,10 @@
     destroy() {
       this._clearAutoTimer();
       this._clearProgTimer();
+      if (this._onKeyDown) {
+        document.removeEventListener("keydown", this._onKeyDown);
+        this._onKeyDown = null;
+      }
       if (this.track) {
         this.track.querySelectorAll(".vs-video").forEach(v => { v.pause(); v.src = ""; });
       }
@@ -839,6 +869,7 @@
 
     /* Conteneur combiné avec uniquement la rangée de cercles */
     const combined = document.createElement("div");
+    combined.className = "vs-circles-wrapper";
     combined.setAttribute("data-wp-video-stories", "");
 
     const circlesDiv = document.createElement("div");
