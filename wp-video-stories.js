@@ -100,9 +100,17 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      transition: transform .15s;
+      transition: transform .15s, background .4s ease;
     }
     .vs-circle-item:active .vs-circle-ring { transform: scale(.9); }
+
+    /* État "vu" — anneau gris */
+    .vs-circle-ring.vs-watched {
+      background: rgba(255,255,255,.22);
+    }
+    .vs-circle-item.vs-watched .vs-circle-label {
+      opacity: .55;
+    }
 
     /* Zone image à l'intérieur de l'anneau */
     .vs-circle-inner {
@@ -138,14 +146,16 @@
     .vs-lightbox {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.92);
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       z-index: 999999; /* au-dessus de la barre admin WordPress (99999) */
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
       pointer-events: none;
-      transition: opacity .22s ease;
+      transition: opacity .25s ease;
     }
     .vs-lightbox.vs-open {
       opacity: 1;
@@ -155,15 +165,25 @@
 
     /* ══ SLIDER (dans la lightbox) ══ */
 
-    /* Mobile : plein écran */
     .vs-wrapper {
       position: relative;
-      width: 100%;
-      height: 100vh;
-      height: 100svh;
+      width: 88vw;
+      height: auto;
+      aspect-ratio: 9/16;
+      max-height: 85vh;
+      max-height: 85svh;
       background: #000;
       overflow: hidden;
+      border-radius: 16px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.7);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      transform: scale(0.18);
+      opacity: 0;
+      transition: transform .4s cubic-bezier(.34,1.4,.64,1), opacity .22s ease;
+    }
+    .vs-lightbox.vs-open .vs-wrapper {
+      transform: scale(1);
+      opacity: 1;
     }
 
     .vs-track {
@@ -250,6 +270,25 @@
       opacity: 1;
     }
 
+    /* Titre story dans le player */
+    .vs-story-title {
+      position: absolute;
+      top: 20px;
+      left: 8px;
+      right: 50px;
+      z-index: 10;
+      pointer-events: none;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 5px rgba(0,0,0,.7);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+
     /* Barre de progression */
     .vs-progress-bar {
       position: absolute;
@@ -326,10 +365,9 @@
       .vs-lightbox { padding: 20px; }
 
       .vs-wrapper {
-        height: auto;
-        aspect-ratio: 9/16;
+        width: auto;
         max-width: 360px;
-        border-radius: 14px;
+        border-radius: 20px;
       }
 
       .vs-caption { font-size: 13px; }
@@ -362,7 +400,7 @@
     @media (min-width: 1024px) {
       .vs-wrapper {
         max-width: 420px;
-        border-radius: 18px;
+        border-radius: 24px;
         box-shadow: 0 24px 70px rgba(0,0,0,.7);
       }
     }
@@ -433,6 +471,8 @@
       this._onKeyDown          = null;
       this.track               = null;
       this.progressBar         = null;
+      this._storyTitleEl       = null;
+      this._watchedGroups      = new Set();
 
       this.init();
     }
@@ -515,6 +555,11 @@
       closeBtn.innerHTML = ICONS.close;
       closeBtn.addEventListener("click", () => this.closeLightbox());
       wrapper.appendChild(closeBtn);
+
+      /* Titre de la story courante */
+      this._storyTitleEl = document.createElement("div");
+      this._storyTitleEl.className = "vs-story-title";
+      wrapper.appendChild(this._storyTitleEl);
 
       /* Bouton mute */
       this.muteBtn = document.createElement("button");
@@ -633,6 +678,14 @@
       /* Charger les deux premières vidéos */
       this._loadVideoSrc(0);
       this._loadVideoSrc(1);
+
+      /* Marquer le groupe comme "vu" + mettre à jour l'anneau */
+      this._watchedGroups.add(groupIndex);
+      const circleItem = this.groups[groupIndex]?.circleItem;
+      if (circleItem) {
+        circleItem.classList.add("vs-watched");
+        circleItem.querySelector(".vs-circle-ring")?.classList.add("vs-watched");
+      }
 
       /* Afficher */
       this._focusBeforeLightbox = document.activeElement;
@@ -822,6 +875,10 @@
       }
       if (this.track) {
         this.track.querySelectorAll(".vs-play-indicator").forEach(pi => pi.classList.remove("vs-show"));
+      }
+      /* Titre */
+      if (this._storyTitleEl) {
+        this._storyTitleEl.textContent = this.activeStories[this.currentIndex]?.title || "";
       }
     }
 
