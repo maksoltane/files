@@ -14,16 +14,25 @@
  * - Fermeture lightbox par bouton X ou touche Escape
  * - Mobile-first responsive
  *
- * UTILISATION :
+ * UTILISATION — un bloc WordPress par story :
  * <div data-wp-video-stories>
+ *   <div class="vs-circle-item">          ← cercle affiché sur la page
+ *     <div class="vs-circle-ring">
+ *       <div class="vs-circle-inner">
+ *         <img class="vs-circle-img" src="thumb.jpg" alt="Titre">
+ *       </div>
+ *     </div>
+ *     <span class="vs-circle-label">Titre</span>
+ *   </div>
+ *   <!-- une ou plusieurs vidéos pour ce cercle -->
  *   <div class="vs-story-data"
  *     data-video="url.mp4"
- *     data-poster="url.jpg"        (placeholder vidéo — plein format)
- *     data-thumb="url.jpg"         (optionnel — image du cercle, carré recommandé)
- *     data-title="Titre court"     (optionnel — affiché sous le cercle)
- *     data-caption="Texte long…"> (affiché dans la lightbox)
+ *     data-poster="url.jpg"
+ *     data-title="Titre"
+ *     data-caption="Texte affiché dans la lightbox">
  *   </div>
  * </div>
+ * Le JS fusionne tous les blocs en un seul player.
  */
 
 (function () {
@@ -128,7 +137,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,.92);
-      z-index: 9999;
+      z-index: 999999; /* au-dessus de la barre admin WordPress (99999) */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -138,7 +147,7 @@
     }
     .vs-lightbox.vs-open {
       opacity: 1;
-      pointer-events: all;
+      pointer-events: auto;
     }
 
 
@@ -380,6 +389,8 @@
       this._swiping            = false;
       this._lightbox           = null;
       this._lightboxOpen       = false;
+      this._focusBeforeLightbox = null;
+      this._onKeyDown          = null;
       this.track               = null;
       this.progressBar         = null;
 
@@ -519,7 +530,10 @@
         if (story.caption) {
           const info = document.createElement("div");
           info.className = "vs-info";
-          info.innerHTML = `<p class="vs-caption">${story.caption}</p>`;
+          const p = document.createElement("p");
+          p.className   = "vs-caption";
+          p.textContent = story.caption;
+          info.appendChild(p);
           slide.appendChild(info);
         }
 
@@ -527,6 +541,11 @@
         pi.className = "vs-play-indicator";
         pi.innerHTML = ICONS.play;
         slide.appendChild(pi);
+
+        /* Fin de vidéo → story suivante (ended ne bulle pas, listener direct) */
+        video.addEventListener("ended", () => {
+          if (parseInt(slide.dataset.index) === this.currentIndex) this.next();
+        });
 
         this.track.appendChild(slide);
       });
@@ -649,34 +668,28 @@
         this.btnNext.addEventListener("click", (e) => { e.stopPropagation(); this.next(); });
       }
 
-      /* Tap slide → play/pause */
-      this.track.querySelectorAll(".vs-slide").forEach((slide) => {
+      /* Tap slide → play/pause (délégation : fonctionne après chaque rebuild) */
+      this.track.addEventListener("click", (e) => {
+        if (e.target.closest("button")) return;
+        if (this._swiping) return;
+        const slide = e.target.closest(".vs-slide");
+        if (!slide) return;
+        if (parseInt(slide.dataset.index) !== this.currentIndex) return;
+
         const video = slide.querySelector(".vs-video");
         const pi    = slide.querySelector(".vs-play-indicator");
-
-        slide.addEventListener("click", (e) => {
-          if (e.target.closest("button")) return;
-          if (this._swiping) return;
-          if (parseInt(slide.dataset.index) !== this.currentIndex) return;
-
-          if (video.paused) {
-            video.play().catch(() => {});
-            pi.classList.remove("vs-show");
-            this._startProgTimer();
-            if (CONFIG.autoAdvance) this._startAutoTimer();
-          } else {
-            video.pause();
-            pi.innerHTML = ICONS.play;
-            pi.classList.add("vs-show");
-            this._clearAutoTimer();
-            this._clearProgTimer();
-          }
-        });
-
-        /* Fin de vidéo → story suivante */
-        video.addEventListener("ended", () => {
-          if (parseInt(slide.dataset.index) === this.currentIndex) this.next();
-        });
+        if (video.paused) {
+          video.play().catch(() => {});
+          pi.classList.remove("vs-show");
+          this._startProgTimer();
+          if (CONFIG.autoAdvance) this._startAutoTimer();
+        } else {
+          video.pause();
+          pi.innerHTML = ICONS.play;
+          pi.classList.add("vs-show");
+          this._clearAutoTimer();
+          this._clearProgTimer();
+        }
       });
     }
 
@@ -807,7 +820,7 @@
 
   /* ─── INITIALISATION AUTOMATIQUE ─── */
   function initAllStories() {
-    const blocks = [...document.querySelectorAll("[data-wp-video-stories]")];
+    const blocks = [...document.querySelectorAll("[data-wp-video-stories]:not([data-vs-ready])")];
     if (blocks.length === 0) return;
 
     /* Construire les groupes — un groupe par bloc */
@@ -836,6 +849,7 @@
     blocks[0].parentNode.insertBefore(combined, blocks[0]);
     blocks.forEach((b) => b.remove());
 
+    combined.setAttribute("data-vs-ready", "");
     combined._vsInstance = new WPVideoStories(combined, groups);
   }
 
