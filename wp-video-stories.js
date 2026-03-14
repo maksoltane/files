@@ -38,6 +38,8 @@
 (function () {
   "use strict";
 
+  console.log("[VS] Script chargé — WP Video Stories");
+
   /* ─── CONFIGURATION ─── */
   const CONFIG = {
     autoplay      : true,   // Lecture auto à l'ouverture
@@ -377,6 +379,9 @@
     s.id = "vs-styles";
     s.textContent = CSS;
     document.head.appendChild(s);
+    console.log("[VS] CSS injecté dans <head>");
+  } else {
+    console.log("[VS] CSS déjà présent — injection ignorée");
   }
 
 
@@ -405,7 +410,11 @@
     }
 
     init() {
-      if (this.groups.length === 0) return;
+      if (this.groups.length === 0) {
+        console.warn("[VS] Aucun groupe trouvé — vérifier les blocs [data-wp-video-stories]");
+        return;
+      }
+      console.log(`[VS] Instance créée — ${this.groups.length} groupe(s) chargé(s)`);
       this.buildCircles();
     }
 
@@ -514,6 +523,7 @@
        CONSTRUCTION DES SLIDES PAR GROUPE
     ══════════════════════════════════════════ */
     _buildGroupSlides(stories) {
+      console.log(`[VS] Construction de ${stories.length} slide(s)`);
       /* Vider les slides et vidéos précédentes */
       this.track.querySelectorAll(".vs-video").forEach(v => { v.pause(); v.src = ""; });
       this.track.innerHTML = "";
@@ -581,6 +591,7 @@
        OUVRIR / FERMER LIGHTBOX
     ══════════════════════════════════════════ */
     openLightboxGroup(groupIndex) {
+      console.log(`[VS] Ouverture groupe ${groupIndex} — "${this.groups[groupIndex]?.circleItem?.querySelector(".vs-circle-label")?.textContent || groupIndex}"`);
       this.buildLightbox(); // no-op si déjà construite
 
       this._clearAutoTimer();
@@ -612,6 +623,7 @@
 
     closeLightbox() {
       if (!this._lightboxOpen) return;
+      console.log("[VS] Fermeture lightbox");
       this._pauseCurrent();
       this._lightboxOpen = false;
       this._lightbox.classList.remove("vs-open");
@@ -633,6 +645,7 @@
       if (video && !video.src) {
         video.src     = this.activeStories[i].videoSrc;
         video.preload = "auto";
+        console.log(`[VS] Vidéo ${i} chargée : ${this.activeStories[i].videoSrc}`);
       }
     }
 
@@ -748,6 +761,7 @@
     playStory(index) {
       const video = this._videoAt(index);
       if (!video) return;
+      console.log(`[VS] Lecture story ${index} — "${this.activeStories[index]?.title || index}"`);
 
       if (CONFIG.showProgress) {
         const fill = this.progressBar.querySelector(`.vs-progress-seg[data-index="${index}"] .vs-progress-fill`);
@@ -851,7 +865,11 @@
   /* ─── INITIALISATION AUTOMATIQUE ─── */
   function initAllStories() {
     const blocks = [...document.querySelectorAll("[data-wp-video-stories]:not([data-vs-ready])")];
-    if (blocks.length === 0) return;
+    console.log(`[VS] initAllStories — ${blocks.length} bloc(s) trouvé(s) dans le DOM`);
+    if (blocks.length === 0) {
+      console.warn("[VS] Aucun bloc [data-wp-video-stories] trouvé — script inactif");
+      return;
+    }
 
     /* Construire les groupes — un groupe par bloc */
     const groups = blocks.map((block) => {
@@ -882,6 +900,7 @@
 
     combined.setAttribute("data-vs-ready", "");
     combined._vsInstance = new WPVideoStories(combined, groups);
+    console.log("[VS] Initialisation terminée ✓", combined._vsInstance);
   }
 
   if (document.readyState === "loading") {

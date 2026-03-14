@@ -113,3 +113,5 @@ Le JS fusionne automatiquement tous les blocs de la page en un seul player.
 | WordPress z-index | 9999 (sous admin bar) | 999999 (au-dessus de tout) |
 | Double-init | Possible | Bloquée par `data-vs-ready` |
 | Boutons sociaux | Like / Comment / Share | Supprimés |
+
+/SW-GDB-V3/wp-content/themes/flatsome/assets/js
