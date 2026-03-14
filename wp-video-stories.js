@@ -54,8 +54,8 @@
   const ICONS = {
     play   : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
     pause  : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>',
-    mute   : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2"/><line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2"/></svg>',
-    unmute : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+    mute   : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM11 5L8.43 7.57 11 10.14V5z"/></svg>',
+    unmute : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>',
     close  : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   };
 
@@ -371,31 +371,29 @@
 
     /* Bouton fermer (dans header) */
     .vs-close-btn {
-      width: 32px; height: 32px;
+      width: 34px; height: 34px;
       border-radius: 50%; border: none;
       background: rgba(0,0,0,.4);
       color: #fff; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
     }
-    .vs-close-btn svg { width: 18px; height: 18px; }
 
     /* Contrôles latéraux droite */
     .vs-side-controls {
       position: absolute;
-      right: 10px; top: 50%; transform: translateY(-50%);
+      right: 8px; top: 50%; transform: translateY(-50%);
       z-index: 15;
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex; flex-direction: column; gap: 10px;
     }
     .vs-side-btn {
-      width: 38px; height: 38px;
+      width: 34px; height: 34px;
       border-radius: 50%; border: none;
       background: rgba(0,0,0,.45);
       color: #fff; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
     }
-    .vs-side-btn svg { width: 20px; height: 20px; }
 
     /* Zones de navigation tap (gauche/droite) */
     .vs-nav-prev,
@@ -442,20 +440,35 @@
       line-height: 1 !important;
       text-transform: none !important;
       letter-spacing: 0 !important;
-      font-size: 0 !important;     /* supprime tout texte parasite */
+      font-size: 0 !important;
       padding: 0 !important;
       margin: 0 !important;
       color: #fff !important;
+      width: 34px !important;
+      height: 34px !important;
+      background: rgba(0,0,0,.45) !important;
+      border: none !important;
+      outline: none !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
     }
-    /* Force l'affichage correct des SVG quelle que soit la feuille de style du thème */
+    /* SVG : taille fixe en pixels pour garantir le padding visible dans le cercle */
     .vs-close-btn svg,
-    .vs-side-btn svg,
+    .vs-side-btn svg {
+      display: block !important;
+      width: 16px !important;
+      height: 16px !important;
+      min-width: 16px !important;
+      min-height: 16px !important;
+      max-width: 16px !important;
+      max-height: 16px !important;
+      pointer-events: none !important;
+      fill: currentColor;
+    }
     .vs-play-indicator svg {
       display: block !important;
-      width: 100% !important;
-      height: 100% !important;
-      max-width: none !important;
-      max-height: none !important;
+      width: 26px !important;
+      height: 26px !important;
       pointer-events: none !important;
       fill: currentColor;
     }
