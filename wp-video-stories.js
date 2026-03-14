@@ -803,7 +803,8 @@
       if (video && !video.src) {
         video.src     = this.activeStories[i].videoSrc;
         video.preload = "auto";
-        console.log(`[VS] Vidéo ${i} chargée : ${this.activeStories[i].videoSrc}`);
+        video.load(); // démarre le téléchargement immédiatement
+        console.log(`[VS] Vidéo ${i} — load() déclenché : ${this.activeStories[i].videoSrc}`);
       }
     }
 
@@ -964,7 +965,21 @@
 
       video.muted       = this.isMuted;
       video.currentTime = 0;
-      if (CONFIG.autoplay) video.play().catch(() => {});
+
+      if (CONFIG.autoplay) {
+        const tryPlay = () => {
+          video.play().catch((err) => {
+            console.warn(`[VS] play() bloqué (story ${index}) :`, err.name, err.message);
+          });
+        };
+        /* Attendre que la vidéo ait assez de données avant de lancer */
+        if (video.readyState >= 3) {
+          tryPlay();
+        } else {
+          video.addEventListener("canplay", tryPlay, { once: true });
+        }
+      }
+
       this._startProgTimer();
       if (CONFIG.autoAdvance) this._startAutoTimer();
     }
