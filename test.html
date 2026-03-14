@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test — WP Video Stories</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      /* desktop : centrage vertical */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100dvh;
+    }
+    /* desktop : le wrapper JS gère max-width + centrage */
+    @media (min-width: 640px) {
+      [data-wp-video-stories] { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div data-wp-video-stories>
+
+    <div class="vs-story-data"
+      data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+      data-poster="https://picsum.photos/seed/s1/390/844"
+      data-user="Sophie M."
+      data-caption="✨ Soin hydratant profond — résultats après une seule séance !"
+      data-color="#E91E8C">
+    </div>
+
+    <div class="vs-story-data"
+      data-video="https://www.w3schools.com/html/movie.mp4"
+      data-poster="https://picsum.photos/seed/s2/390/844"
+      data-user="Lucie B."
+      data-caption="💆 Massage relaxant — offrez-vous une pause bien-être"
+      data-color="#534AB7">
+    </div>
+
+    <div class="vs-story-data"
+      data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+      data-poster="https://picsum.photos/seed/s3/390/844"
+      data-user="Institut Lumière"
+      data-caption="🌸 Épilation au fil — douceur et précision garanties"
+      data-color="#FF6B35">
+    </div>
+
+    <div class="vs-story-data"
+      data-video="https://www.w3schools.com/html/movie.mp4"
+      data-poster="https://picsum.photos/seed/s4/390/844"
+      data-user="Amira K."
+      data-caption="🔬 Diagnostic peau personnalisé — réservez votre téléconsultation"
+      data-color="#00BCD4">
+    </div>
+
+  </div>
+
+  <script src="wp-video-stories.js"></script>
+</body>
+</html>
