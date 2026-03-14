@@ -312,9 +312,10 @@
       this.stories      = [];
       this.currentIndex = 0;
       this.isMuted      = CONFIG.muted;
-      this.autoTimer    = null;
-      this.rafId        = null;
-      this.progStart    = 0;
+      this.autoTimer           = null;
+      this.rafId               = null;
+      this.progStart           = 0;
+      this._programmaticScroll = false;
 
       this.init();
     }
@@ -446,11 +447,18 @@
     setupScrollSnap() {
       let t;
       this.track.addEventListener("scroll", () => {
+        if (this._programmaticScroll) return; // ignorer les scrolls déclenchés par goTo()
         clearTimeout(t);
         t = setTimeout(() => {
           const idx = Math.round(this.track.scrollLeft / this.track.clientWidth);
-          if (idx !== this.currentIndex) this.goTo(idx);
-        }, 120);
+          if (idx !== this.currentIndex) {
+            this._pauseCurrent();
+            this.currentIndex = idx;
+            this._lazyLoadNext();
+            this.updateUI();
+            this.playStory(idx); // pas de scrollTo — le swipe l'a déjà fait
+          }
+        }, 200); // 200ms : laisse le snap CSS se stabiliser
       });
     }
 
@@ -498,12 +506,15 @@
       });
     }
 
-    /* ── Navigation ── */
+    /* ── Navigation (flèches / auto) ── */
     goTo(index) {
       if (index < 0 || index >= this.stories.length) return;
       this._pauseCurrent();
       this.currentIndex = index;
+      // scrollTo programmatique — on lève le flag pour ignorer l'événement scroll
+      this._programmaticScroll = true;
       this.track.scrollTo({ left: this.track.clientWidth * index, behavior: "smooth" });
+      setTimeout(() => { this._programmaticScroll = false; }, 400);
       this._lazyLoadNext();
       this.updateUI();
       this.playStory(index);
@@ -541,10 +552,12 @@
       this.track.querySelectorAll(".vs-play-indicator").forEach(pi => pi.classList.remove("vs-show"));
     }
 
-    /* ── Timer auto-avance ── */
+    /* ── Timer auto-avance (filet de sécurité si la vidéo ne se charge pas) ── */
     _startAutoTimer() {
       this._clearAutoTimer();
       if (!CONFIG.autoAdvance) return;
+      // L'événement "ended" gère l'avance normale.
+      // Ce timeout est un fallback si la vidéo ne démarre pas.
       this.autoTimer = setTimeout(() => this.next(), CONFIG.autoAdvanceMs);
     }
 
@@ -553,24 +566,27 @@
       this.autoTimer = null;
     }
 
-    /* ── Barre de progression animée ── */
+    /* ── Barre de progression — calée sur la durée réelle de la vidéo ── */
     _startProgTimer() {
       this._clearProgTimer();
       if (!CONFIG.showProgress) return;
-      const seg  = this.progressBar.querySelector(`.vs-progress-seg[data-index="${this.currentIndex}"]`);
-      if (!seg) return;
-      const fill = seg.querySelector(".vs-progress-fill");
-      this.progStart = performance.now();
 
-      const tick = (now) => {
-        const pct = Math.min(((now - this.progStart) / CONFIG.autoAdvanceMs) * 100, 100);
-        fill.style.width = pct + "%";
-        if (pct < 100) this.rafId = requestAnimationFrame(tick);
+      const video = this._videoAt(this.currentIndex);
+      const seg   = this.progressBar.querySelector(`.vs-progress-seg[data-index="${this.currentIndex}"]`);
+      if (!seg || !video) return;
+      const fill  = seg.querySelector(".vs-progress-fill");
+
+      const onTime = () => {
+        if (!video.duration) return;
+        fill.style.width = Math.min((video.currentTime / video.duration) * 100, 100) + "%";
       };
-      this.rafId = requestAnimationFrame(tick);
+
+      video.addEventListener("timeupdate", onTime);
+      this._progCleanup = () => video.removeEventListener("timeupdate", onTime);
     }
 
     _clearProgTimer() {
+      if (this._progCleanup) { this._progCleanup(); this._progCleanup = null; }
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
