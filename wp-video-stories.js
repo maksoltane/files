@@ -70,10 +70,11 @@
 
     .vs-circles {
       display: flex;
+      justify-content: center;
       gap: 14px;
       overflow-x: auto;
       scrollbar-width: none;
-      padding: 10px 4px 14px;
+      padding: 28px 28px 20px; /* 28px haut/côtés = pulse 24px + 4px marge */
       -webkit-overflow-scrolling: touch;
     }
     .vs-circles::-webkit-scrollbar { display: none; }
