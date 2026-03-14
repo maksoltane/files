@@ -7,10 +7,11 @@
  * - Affichage initial léger : rangée de cercles cliquables (poster + titre)
  * - Clic → lightbox plein écran avec slider horizontal
  * - Vidéos chargées uniquement à l'ouverture (lazy load total)
- * - Navigation manuelle (swipe + flèches desktop)
+ * - Navigation manuelle (swipe + zones tap gauche/droite)
  * - Auto-avance en fin de vidéo
  * - Barre de progression calée sur la durée réelle
- * - Bouton mute/unmute
+ * - Bouton mute/unmute + bouton play/pause (contrôles latéraux droite)
+ * - Header avec thumbnail + nom de la story + bouton fermer
  * - Fermeture lightbox par bouton X ou touche Escape
  * - Mobile-first responsive
  *
@@ -47,16 +48,14 @@
     autoAdvance   : true,   // Avancer auto en fin de vidéo
     autoAdvanceMs : 15000,  // Fallback si la vidéo ne se charge pas
     showProgress  : true,   // Barre de progression
-    showNavArrows : true,   // Flèches prev/next (desktop)
   };
 
   /* ─── ICÔNES SVG ─── */
   const ICONS = {
     play   : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+    pause  : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>',
     mute   : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2"/><line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2"/></svg>',
     unmute : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
-    prev   : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>',
-    next   : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>',
     close  : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   };
 
@@ -90,35 +89,77 @@
       user-select: none;
     }
 
-    /* Anneau dégradé */
+    /* Anneau avec animation pulse (effet sonar) */
     .vs-circle-ring {
-      width: 68px;
-      height: 68px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
       background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      transition: transform .15s, background .4s ease;
+      position: relative;
+      transition: transform .15s;
+      animation: vs-ring-pulse 2.4s ease-out infinite;
     }
-    .vs-circle-item:active .vs-circle-ring { transform: scale(.9); }
+    .vs-circle-item:active .vs-circle-ring { transform: scale(.92); }
 
-    /* État "vu" — anneau gris */
+    /* Icône play au centre (triangle CSS) */
+    .vs-circle-ring::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 53%;
+      transform: translate(-50%, -50%);
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 7px 0 7px 13px;
+      border-color: transparent transparent transparent rgba(255,255,255,.95);
+      filter: drop-shadow(0 1px 4px rgba(0,0,0,.7));
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    /* Keyframes pulse : box-shadow expand + fade (identique PlayShorts) */
+    @keyframes vs-ring-pulse {
+      0% {
+        box-shadow:
+          0 0 0 0 rgba(220, 39, 67, .55),
+          0 0 0 0 rgba(188, 24, 136, .38);
+      }
+      65% {
+        box-shadow:
+          0 0 0 12px rgba(220, 39, 67, 0),
+          0 0 0  7px rgba(188, 24, 136, 0);
+      }
+      100% {
+        box-shadow:
+          0 0 0 0 rgba(220, 39, 67, 0),
+          0 0 0 0 rgba(188, 24, 136, 0);
+      }
+    }
+
+    /* État "vu" — gradient gris, pulse stoppé */
     .vs-circle-ring.vs-watched {
-      background: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.18);
+      animation: none;
+      box-shadow: none;
     }
     .vs-circle-item.vs-watched .vs-circle-label {
-      opacity: .55;
+      opacity: .45;
     }
 
     /* Zone image à l'intérieur de l'anneau */
     .vs-circle-inner {
-      width: 58px;
-      height: 58px;
+      width: 61px;
+      height: 61px;
       border-radius: 50%;
       overflow: hidden;
       background: #333;
+      position: relative;
+      z-index: 1;
     }
     .vs-circle-img {
       width: 100%;
@@ -168,10 +209,9 @@
     .vs-wrapper {
       position: relative;
       width: 88vw;
-      height: auto;
+      max-width: calc(85svh * 9 / 16);
+      max-width: calc(85vh  * 9 / 16);  /* fallback */
       aspect-ratio: 9/16;
-      max-height: 85vh;
-      max-height: 85svh;
       background: #000;
       overflow: hidden;
       border-radius: 16px;
@@ -186,10 +226,11 @@
       opacity: 1;
     }
 
+    /* Position absolue : évite le bug height:100% avec aspect-ratio */
     .vs-track {
+      position: absolute;
+      inset: 0;
       display: flex;
-      width: 100%;
-      height: 100%;
       overflow-x: scroll;
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
@@ -270,94 +311,104 @@
       opacity: 1;
     }
 
-    /* Titre story dans le player */
-    .vs-story-title {
+    /* Ombre haut */
+    .vs-player-shadow {
       position: absolute;
-      top: 20px;
-      left: 8px;
-      right: 50px;
-      z-index: 10;
+      top: 0; left: 0; right: 0;
+      height: 100px;
+      background: linear-gradient(to bottom, rgba(0,0,0,.6) 0%, transparent 100%);
       pointer-events: none;
-      font-size: 11px;
-      font-weight: 700;
-      color: #fff;
-      text-shadow: 0 1px 5px rgba(0,0,0,.7);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      letter-spacing: .3px;
-      text-transform: uppercase;
+      z-index: 9;
     }
 
-    /* Barre de progression */
+    /* Barre de progression multi-segments */
     .vs-progress-bar {
       position: absolute;
-      top: 10px;
-      left: 8px;
-      right: 46px;    /* espace pour le bouton fermer */
+      top: 10px; left: 10px; right: 10px;
+      display: flex; gap: 3px;
+      z-index: 15; pointer-events: none;
+    }
+    .vs-progress-seg { flex: 1; height: 2px; background: rgba(255,255,255,.3); border-radius: 2px; overflow: hidden; }
+    .vs-progress-fill { height: 100%; width: 0%; background: #fff; border-radius: 2px; }
+
+    /* Header (sous la barre de progression) */
+    .vs-player-header {
+      position: absolute;
+      top: 22px; left: 0; right: 0;
+      z-index: 15;
       display: flex;
-      gap: 3px;
-      z-index: 10;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
       pointer-events: none;
     }
-    .vs-progress-seg {
-      flex: 1;
-      height: 2px;
-      background: rgba(255,255,255,.3);
-      border-radius: 2px;
+    .vs-player-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      pointer-events: none;
+    }
+    .vs-player-header-thumb {
+      width: 32px; height: 32px;
+      border-radius: 50%;
       overflow: hidden;
+      border: 1.5px solid rgba(255,255,255,.55);
+      flex-shrink: 0;
+      background: #444;
     }
-    .vs-progress-fill {
-      height: 100%;
-      width: 0%;
-      background: #fff;
-      border-radius: 2px;
+    .vs-player-header-thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
     }
+    .vs-player-header-name {
+      font-size: 12px; font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,.65);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .vs-player-header-right { pointer-events: auto; }
 
-    /* Bouton fermer */
+    /* Bouton fermer (dans header) */
     .vs-close-btn {
-      position: absolute;
-      top: 6px;
-      right: 8px;
-      z-index: 20;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(0,0,0,.45);
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      width: 32px; height: 32px;
+      border-radius: 50%; border: none;
+      background: rgba(0,0,0,.4);
+      color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
     }
-    .vs-close-btn svg { width: 16px; height: 16px; }
+    .vs-close-btn svg { width: 18px; height: 18px; }
 
-    /* Bouton mute */
-    .vs-mute-btn {
+    /* Contrôles latéraux droite */
+    .vs-side-controls {
       position: absolute;
-      top: 48px;
-      right: 8px;
-      z-index: 10;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(0,0,0,.45);
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      right: 10px; top: 50%; transform: translateY(-50%);
+      z-index: 15;
+      display: flex; flex-direction: column; gap: 12px;
     }
-    .vs-mute-btn svg { width: 16px; height: 16px; }
+    .vs-side-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%; border: none;
+      background: rgba(0,0,0,.45);
+      color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    }
+    .vs-side-btn svg { width: 20px; height: 20px; }
 
-    /* Flèches nav — masquées sur mobile */
-    .vs-nav-btn { display: none; }
+    /* Zones de navigation tap (gauche/droite) */
+    .vs-nav-prev,
+    .vs-nav-next {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 35%;
+      z-index: 5;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .vs-nav-prev { left: 0; }
+    .vs-nav-next { right: 0; }
 
 
     /* ══ TABLET 640px ══ */
@@ -365,35 +416,13 @@
       .vs-lightbox { padding: 20px; }
 
       .vs-wrapper {
-        width: auto;
+        width: calc(85svh * 9 / 16);
+        width: calc(85vh  * 9 / 16);
         max-width: 360px;
         border-radius: 20px;
       }
 
       .vs-caption { font-size: 13px; }
-
-      .vs-nav-btn {
-        display: flex;
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 10;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        border: none;
-        background: rgba(0,0,0,.42);
-        color: #fff;
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(4px);
-        transition: opacity .2s;
-      }
-      .vs-nav-btn svg { width: 20px; height: 20px; }
-      .vs-nav-btn.vs-hidden { opacity: 0; pointer-events: none; }
-      .vs-prev { left: 10px; }
-      .vs-next { right: 10px; }
     }
 
     /* ══ DESKTOP 1024px ══ */
@@ -408,8 +437,7 @@
     /* ══ RESET THÈME WORDPRESS / FLATSOME ══ */
     /* Neutralise les styles de boutons injectés par le thème */
     .vs-close-btn,
-    .vs-mute-btn,
-    .vs-nav-btn {
+    .vs-side-btn {
       box-sizing: border-box !important;
       line-height: 1 !important;
       text-transform: none !important;
@@ -421,8 +449,7 @@
     }
     /* Force l'affichage correct des SVG quelle que soit la feuille de style du thème */
     .vs-close-btn svg,
-    .vs-mute-btn svg,
-    .vs-nav-btn svg,
+    .vs-side-btn svg,
     .vs-play-indicator svg {
       display: block !important;
       width: 100% !important;
@@ -471,7 +498,10 @@
       this._onKeyDown          = null;
       this.track               = null;
       this.progressBar         = null;
-      this._storyTitleEl       = null;
+      this.headerThumb         = null;
+      this.headerName          = null;
+      this.playBtn             = null;
+      this.muteBtn             = null;
       this._watchedGroups      = new Set();
 
       this.init();
@@ -538,50 +568,84 @@
       /* Piste */
       this.track = document.createElement("div");
       this.track.className = "vs-track";
-
       wrapper.appendChild(this.track);
 
-      /* Barre de progression — segments remplis à l'ouverture */
+      /* 1. Ombre haut */
+      const shadow = document.createElement("div");
+      shadow.className = "vs-player-shadow";
+      wrapper.appendChild(shadow);
+
+      /* 2. Barre de progression — segments remplis à l'ouverture */
       if (CONFIG.showProgress) {
         this.progressBar = document.createElement("div");
         this.progressBar.className = "vs-progress-bar";
         wrapper.appendChild(this.progressBar);
       }
 
-      /* Bouton fermer */
+      /* 3. Header */
+      const header = document.createElement("div");
+      header.className = "vs-player-header";
+
+      /* Header gauche : thumbnail + nom */
+      const headerLeft = document.createElement("div");
+      headerLeft.className = "vs-player-header-left";
+
+      this.headerThumb = document.createElement("div");
+      this.headerThumb.className = "vs-player-header-thumb";
+      const thumbImg = document.createElement("img");
+      thumbImg.src = "";
+      thumbImg.alt = "";
+      this.headerThumb.appendChild(thumbImg);
+      headerLeft.appendChild(this.headerThumb);
+
+      this.headerName = document.createElement("span");
+      this.headerName.className = "vs-player-header-name";
+      headerLeft.appendChild(this.headerName);
+
+      header.appendChild(headerLeft);
+
+      /* Header droite : bouton fermer */
+      const headerRight = document.createElement("div");
+      headerRight.className = "vs-player-header-right";
+
       const closeBtn = document.createElement("button");
       closeBtn.className = "vs-close-btn";
       closeBtn.setAttribute("aria-label", "Fermer");
       closeBtn.innerHTML = ICONS.close;
       closeBtn.addEventListener("click", () => this.closeLightbox());
-      wrapper.appendChild(closeBtn);
+      headerRight.appendChild(closeBtn);
 
-      /* Titre de la story courante */
-      this._storyTitleEl = document.createElement("div");
-      this._storyTitleEl.className = "vs-story-title";
-      wrapper.appendChild(this._storyTitleEl);
+      header.appendChild(headerRight);
+      wrapper.appendChild(header);
+
+      /* 4. Contrôles latéraux droite */
+      const sideControls = document.createElement("div");
+      sideControls.className = "vs-side-controls";
+
+      /* Bouton play/pause */
+      this.playBtn = document.createElement("button");
+      this.playBtn.className = "vs-side-btn vs-play-btn";
+      this.playBtn.setAttribute("aria-label", "Lecture / Pause");
+      this.playBtn.innerHTML = ICONS.play;
+      sideControls.appendChild(this.playBtn);
 
       /* Bouton mute */
       this.muteBtn = document.createElement("button");
-      this.muteBtn.className = "vs-mute-btn";
+      this.muteBtn.className = "vs-side-btn vs-mute-btn";
       this.muteBtn.setAttribute("aria-label", "Son");
       this.muteBtn.innerHTML = this.isMuted ? ICONS.mute : ICONS.unmute;
-      wrapper.appendChild(this.muteBtn);
+      sideControls.appendChild(this.muteBtn);
 
-      /* Flèches */
-      if (CONFIG.showNavArrows) {
-        this.btnPrev = document.createElement("button");
-        this.btnPrev.className = "vs-nav-btn vs-prev";
-        this.btnPrev.setAttribute("aria-label", "Précédent");
-        this.btnPrev.innerHTML = ICONS.prev;
-        wrapper.appendChild(this.btnPrev);
+      wrapper.appendChild(sideControls);
 
-        this.btnNext = document.createElement("button");
-        this.btnNext.className = "vs-nav-btn vs-next";
-        this.btnNext.setAttribute("aria-label", "Suivant");
-        this.btnNext.innerHTML = ICONS.next;
-        wrapper.appendChild(this.btnNext);
-      }
+      /* 5. Zones de navigation tap */
+      const navPrev = document.createElement("div");
+      navPrev.className = "vs-nav-prev";
+      wrapper.appendChild(navPrev);
+
+      const navNext = document.createElement("div");
+      navNext.className = "vs-nav-next";
+      wrapper.appendChild(navNext);
 
       lb.appendChild(wrapper);
       document.body.appendChild(lb);
@@ -778,10 +842,42 @@
         this.track.querySelectorAll(".vs-video").forEach(v => { v.muted = this.isMuted; });
       });
 
-      /* Flèches */
-      if (CONFIG.showNavArrows) {
-        this.btnPrev.addEventListener("click", (e) => { e.stopPropagation(); this.prev(); });
-        this.btnNext.addEventListener("click", (e) => { e.stopPropagation(); this.next(); });
+      /* Play/Pause (bouton latéral) */
+      this.playBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const video = this._videoAt(this.currentIndex);
+        if (!video) return;
+        const slide = this.track.querySelectorAll(".vs-slide")[this.currentIndex];
+        const pi    = slide ? slide.querySelector(".vs-play-indicator") : null;
+        if (video.paused) {
+          video.play().catch(() => {});
+          if (pi) pi.classList.remove("vs-show");
+          this._startProgTimer();
+          if (CONFIG.autoAdvance) this._startAutoTimer();
+        } else {
+          video.pause();
+          if (pi) { pi.innerHTML = ICONS.play; pi.classList.add("vs-show"); }
+          this._clearAutoTimer();
+          this._clearProgTimer();
+        }
+        /* Mettre à jour l'icône du bouton play après toggle */
+        this.playBtn.innerHTML = video.paused ? ICONS.play : ICONS.pause;
+      });
+
+      /* Zones de navigation tap */
+      const navPrev = this._lightbox.querySelector(".vs-nav-prev");
+      const navNext = this._lightbox.querySelector(".vs-nav-next");
+      if (navPrev) {
+        navPrev.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.prev();
+        });
+      }
+      if (navNext) {
+        navNext.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.next();
+        });
       }
 
       /* Tap slide → play/pause (délégation : fonctionne après chaque rebuild) */
@@ -805,6 +901,10 @@
           pi.classList.add("vs-show");
           this._clearAutoTimer();
           this._clearProgTimer();
+        }
+        /* Synchroniser l'icône du bouton play */
+        if (this.playBtn) {
+          this.playBtn.innerHTML = video.paused ? ICONS.play : ICONS.pause;
         }
       });
     }
@@ -861,10 +961,6 @@
        UI
     ══════════════════════════════════════════ */
     updateUI() {
-      if (CONFIG.showNavArrows && this.btnPrev && this.btnNext) {
-        this.btnPrev.classList.toggle("vs-hidden", this.currentIndex === 0);
-        this.btnNext.classList.toggle("vs-hidden", this.currentIndex === this.activeStories.length - 1);
-      }
       if (CONFIG.showProgress && this.progressBar) {
         this.progressBar.querySelectorAll(".vs-progress-seg").forEach((seg) => {
           const i    = parseInt(seg.dataset.index);
@@ -876,9 +972,21 @@
       if (this.track) {
         this.track.querySelectorAll(".vs-play-indicator").forEach(pi => pi.classList.remove("vs-show"));
       }
-      /* Titre */
-      if (this._storyTitleEl) {
-        this._storyTitleEl.textContent = this.activeStories[this.currentIndex]?.title || "";
+
+      /* Mettre à jour header : thumbnail + nom */
+      const story = this.activeStories[this.currentIndex];
+      if (this.headerThumb && story) {
+        const img = this.headerThumb.querySelector("img");
+        if (img) img.src = story.posterSrc || story.thumbSrc || "";
+      }
+      if (this.headerName && story) {
+        this.headerName.textContent = story.title || "";
+      }
+
+      /* Mettre à jour icône play/pause */
+      if (this.playBtn) {
+        const v = this._videoAt(this.currentIndex);
+        this.playBtn.innerHTML = (v && !v.paused) ? ICONS.pause : ICONS.play;
       }
     }
 
