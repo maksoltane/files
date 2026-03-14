@@ -202,7 +202,7 @@
       background: #fff;
       border-radius: 2px;
     }
-    .vs-progress-seg.vs-past .vs-progress-fill { width: 100%; }
+    /* largeurs gérées exclusivement en inline style par JS */
 
     /* Bouton mute */
     .vs-mute-btn {
@@ -526,6 +526,13 @@
     playStory(index) {
       const video = this._videoAt(index);
       if (!video) return;
+
+      // Remettre la barre du slide courant à 0 avant de jouer
+      if (CONFIG.showProgress) {
+        const fill = this.progressBar.querySelector(`.vs-progress-seg[data-index="${index}"] .vs-progress-fill`);
+        if (fill) fill.style.width = "0%";
+      }
+
       video.muted = this.isMuted;
       video.currentTime = 0;
       if (CONFIG.autoplay) video.play().catch(() => {});
@@ -541,11 +548,14 @@
       }
       if (CONFIG.showProgress) {
         this.progressBar.querySelectorAll(".vs-progress-seg").forEach((seg) => {
-          const i = parseInt(seg.dataset.index);
-          seg.classList.toggle("vs-past", i < this.currentIndex);
-          if (i >= this.currentIndex) {
-            seg.querySelector(".vs-progress-fill").style.width = "0%";
+          const i    = parseInt(seg.dataset.index);
+          const fill = seg.querySelector(".vs-progress-fill");
+          if (i < this.currentIndex) {
+            fill.style.width = "100%";   // passé  → plein
+          } else if (i > this.currentIndex) {
+            fill.style.width = "0%";     // futur  → vide
           }
+          // i === currentIndex : laissé à 0% par playStory puis animé par timeupdate
         });
       }
       /* Reset indicateurs play */
