@@ -80,12 +80,12 @@
     .vs-circles::-webkit-scrollbar { display: none; }
 
     .vs-circle-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
-      cursor: pointer;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 6px !important;
+      flex-shrink: 0 !important;
+      cursor: pointer !important;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
@@ -144,9 +144,9 @@
 
     /* État "vu" — gradient gris, pulse stoppé */
     .vs-circle-ring.vs-watched {
-      background: rgba(255,255,255,.18);
-      animation: none;
-      box-shadow: none;
+      background: rgba(255,255,255,.18) !important;
+      animation: none !important;
+      box-shadow: none !important;
     }
     .vs-circle-item.vs-watched .vs-circle-label {
       opacity: .45;
@@ -171,15 +171,24 @@
 
     /* Titre sous le cercle */
     .vs-circle-label {
-      font-size: 11px;
-      font-weight: 500;
-      color: #fff;
-      text-align: center;
-      max-width: 144px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: block !important;
+      visibility: visible !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      color: #fff !important;
+      text-align: center !important;
+      max-width: 144px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      line-height: 1.3 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: none !important;
+      text-decoration: none !important;
+      text-transform: none !important;
+      letter-spacing: 0 !important;
     }
 
 
