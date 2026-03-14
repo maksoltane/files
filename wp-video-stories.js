@@ -91,8 +91,8 @@
 
     /* Anneau avec animation pulse (effet sonar) */
     .vs-circle-ring {
-      width: 72px;
-      height: 72px;
+      width: 144px;
+      height: 144px;
       border-radius: 50%;
       background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
       display: flex;
@@ -115,7 +115,7 @@
       width: 0;
       height: 0;
       border-style: solid;
-      border-width: 7px 0 7px 13px;
+      border-width: 14px 0 14px 26px;
       border-color: transparent transparent transparent rgba(255,255,255,.95);
       filter: drop-shadow(0 1px 4px rgba(0,0,0,.7));
       z-index: 3;
@@ -131,8 +131,8 @@
       }
       65% {
         box-shadow:
-          0 0 0 12px rgba(220, 39, 67, 0),
-          0 0 0  7px rgba(188, 24, 136, 0);
+          0 0 0 24px rgba(220, 39, 67, 0),
+          0 0 0 14px rgba(188, 24, 136, 0);
       }
       100% {
         box-shadow:
@@ -153,8 +153,8 @@
 
     /* Zone image à l'intérieur de l'anneau */
     .vs-circle-inner {
-      width: 61px;
-      height: 61px;
+      width: 122px;
+      height: 122px;
       border-radius: 50%;
       overflow: hidden;
       background: #333;
@@ -174,7 +174,7 @@
       font-weight: 500;
       color: #fff;
       text-align: center;
-      max-width: 68px;
+      max-width: 144px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
