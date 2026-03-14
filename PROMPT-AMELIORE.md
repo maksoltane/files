@@ -101,6 +101,102 @@ Le JS fusionne automatiquement tous les blocs de la page en un seul player.
 
 ---
 
+## Intégration sur le site WordPress
+
+### Chemin FTP
+```
+/SW-GDB-V3/wp-content/themes/flatsome-child/js/wp-video-stories.js
+```
+
+### Étape 1 — Uploader le fichier JS via FTP
+Déposer `wp-video-stories.js` dans :
+```
+/SW-GDB-V3/wp-content/themes/flatsome-child/js/
+```
+
+### Étape 2 — Enqueuer dans `functions.php`
+Ouvrir `/SW-GDB-V3/wp-content/themes/flatsome-child/functions.php` et ajouter :
+
+```php
+function vs_enqueue() {
+    wp_enqueue_script(
+        'wp-video-stories',
+        get_stylesheet_directory_uri() . '/js/wp-video-stories.js',
+        [],
+        '1.0.0',
+        true // chargé en footer
+    );
+}
+add_action( 'wp_enqueue_scripts', 'vs_enqueue' );
+```
+
+> **Note :** `get_stylesheet_directory_uri()` pointe vers le thème enfant (`flatsome-child`), ce qui est correct.
+
+### Étape 3 — Ajouter le HTML dans la page WordPress
+
+Dans l'éditeur Gutenberg, ajouter un bloc **HTML personnalisé** par cercle :
+
+```html
+<!-- Cercle 1 : 3 vidéos -->
+<div data-wp-video-stories>
+  <div class="vs-circle-item">
+    <div class="vs-circle-ring">
+      <div class="vs-circle-inner">
+        <img class="vs-circle-img" src="URL_MINIATURE.jpg" alt="Soins" loading="lazy">
+      </div>
+    </div>
+    <span class="vs-circle-label">Soins</span>
+  </div>
+  <div class="vs-story-data"
+    data-video="URL_VIDEO_1.mp4"
+    data-poster="URL_POSTER_1.jpg"
+    data-caption="Votre texte story 1">
+  </div>
+  <div class="vs-story-data"
+    data-video="URL_VIDEO_2.mp4"
+    data-poster="URL_POSTER_2.jpg"
+    data-caption="Votre texte story 2">
+  </div>
+</div>
+
+<!-- Cercle 2 : 1 vidéo -->
+<div data-wp-video-stories>
+  <div class="vs-circle-item">
+    <div class="vs-circle-ring">
+      <div class="vs-circle-inner">
+        <img class="vs-circle-img" src="URL_MINIATURE_2.jpg" alt="Diagnostic" loading="lazy">
+      </div>
+    </div>
+    <span class="vs-circle-label">Diagnostic</span>
+  </div>
+  <div class="vs-story-data"
+    data-video="URL_VIDEO_3.mp4"
+    data-poster="URL_POSTER_3.jpg"
+    data-caption="Votre texte story 3">
+  </div>
+</div>
+```
+
+> Le JS fusionne automatiquement tous les blocs en une seule rangée de cercles.
+
+### Étape 4 — Corriger le style pour la barre admin WordPress
+
+Le fichier `wp-video-stories.js` contient déjà ces corrections intégrées :
+- ✅ Hauteur mobile : `height: 100vh; height: 100svh;` (fallback iOS)
+- ✅ Barre admin : `.admin-bar .vs-lightbox { top: 32px; }` (desktop) et `46px` (mobile)
+
+Aucun CSS supplémentaire n'est nécessaire.
+
+### Résumé des fichiers à modifier
+
+| Fichier | Action |
+|---|---|
+| `/js/wp-video-stories.js` | Uploader via FTP |
+| `functions.php` | Ajouter l'enqueue |
+| Page WordPress | Ajouter blocs HTML personnalisés |
+
+---
+
 ## Ce qui a changé par rapport à la v1 :
 
 | Aspect | v1 (scroll vertical) | v2 (cercles + lightbox) |
@@ -114,4 +210,3 @@ Le JS fusionne automatiquement tous les blocs de la page en un seul player.
 | Double-init | Possible | Bloquée par `data-vs-ready` |
 | Boutons sociaux | Like / Comment / Share | Supprimés |
 
-/SW-GDB-V3/wp-content/themes/flatsome/assets/js
