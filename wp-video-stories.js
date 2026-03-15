@@ -336,9 +336,10 @@
       position: absolute;
       top: 10px; left: 10px; right: 10px;
       display: flex; gap: 3px;
-      z-index: 15; pointer-events: none;
+      z-index: 15; pointer-events: auto;
     }
-    .vs-progress-seg { flex: 1; height: 2px; background: rgba(255,255,255,.3); border-radius: 2px; overflow: hidden; }
+    .vs-progress-seg { flex: 1; height: 2px; background: rgba(255,255,255,.3); border-radius: 2px; position: relative; cursor: pointer; }
+    .vs-progress-seg::before { content: ''; position: absolute; inset: -6px 0; }
     .vs-progress-fill { height: 100%; width: 0%; background: #fff; border-radius: 2px; }
 
     /* Header (sous la barre de progression) */
@@ -483,6 +484,91 @@
       fill: currentColor;
     }
 
+    /* ══ SPINNER CHARGEMENT ══ */
+    .vs-spinner {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: vs-spin .75s linear infinite;
+      z-index: 6;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .vs-slide.vs-loading .vs-spinner { opacity: 1; }
+    @keyframes vs-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+    /* ══ ERROR STATE ══ */
+    .vs-error-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(0,0,0,.78);
+      color: #fff;
+      z-index: 7;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .vs-slide.vs-error-state .vs-error-overlay { display: flex; }
+    .vs-error-msg { font-size: 13px; opacity: .7; line-height: 1.4; margin: 0; }
+    .vs-error-retry {
+      margin-top: 4px;
+      padding: 7px 18px !important;
+      border: 1.5px solid rgba(255,255,255,.55) !important;
+      border-radius: 20px !important;
+      background: transparent !important;
+      color: #fff !important;
+      font-size: 13px !important;
+      cursor: pointer;
+      font-family: inherit !important;
+      box-sizing: border-box !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+      line-height: 1.4 !important;
+    }
+    .vs-error-retry:hover { background: rgba(255,255,255,.15) !important; }
+
+    /* ══ SHIMMER CERCLES ══ */
+    @keyframes vs-shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .vs-circle-inner.vs-shimmer {
+      background: linear-gradient(90deg, #2a2a2a 25%, #3d3d3d 50%, #2a2a2a 75%);
+      background-size: 200% 100%;
+      animation: vs-shimmer 1.5s linear infinite;
+    }
+
+    /* ══ COMPTEUR STORIES ══ */
+    .vs-player-header-count {
+      font-size: 11px;
+      font-weight: 400;
+      color: rgba(255,255,255,.55);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ══ REDUCED MOTION ══ */
+    @media (prefers-reduced-motion: reduce) {
+      .vs-circle-ring             { animation: none; box-shadow: none; }
+      .vs-wrapper                 { transition: opacity .15s ease; }
+      .vs-lightbox                { transition: opacity .15s ease; }
+      .vs-circle-inner.vs-shimmer { animation: none; background: #2a2a2a; }
+      .vs-spinner                 { animation: none; border-color: rgba(255,255,255,.4); border-top-color: #fff; }
+    }
+
     /* ══ WORDPRESS ADMIN BAR ══ */
     .admin-bar .vs-lightbox { top: 32px; }
     @media screen and (max-width: 782px) {
@@ -526,6 +612,9 @@
       this.playBtn             = null;
       this.muteBtn             = null;
       this._watchedGroups      = new Set();
+      this._visibilityHandler  = null;
+      this.wrapper             = null;
+      this.headerCount         = null;
 
       this.init();
     }
@@ -551,6 +640,16 @@
       this.groups.forEach((group, i) => {
         const item = group.circleItem;
         if (!item) return;
+
+        /* Shimmer pendant le chargement de l'image */
+        const img   = item.querySelector(".vs-circle-img");
+        const inner = item.querySelector(".vs-circle-inner");
+        if (img && inner && !img.complete) {
+          inner.classList.add("vs-shimmer");
+          img.addEventListener("load",  () => inner.classList.remove("vs-shimmer"), { once: true });
+          img.addEventListener("error", () => inner.classList.remove("vs-shimmer"), { once: true });
+        }
+
         item.style.cursor = "pointer";
         item.addEventListener("click", () => this.openLightboxGroup(i));
         row.appendChild(item);
@@ -583,6 +682,18 @@
         if (e.key === "ArrowLeft")  this.prev();
       };
       document.addEventListener("keydown", this._onKeyDown);
+
+      /* Page Visibility API — pause quand l'onglet est masqué */
+      this._visibilityHandler = () => {
+        if (!this._lightboxOpen) return;
+        if (document.hidden) {
+          this._pauseCurrent();
+        } else {
+          const v = this._videoAt(this.currentIndex);
+          if (v) v.play().catch(() => {});
+        }
+      };
+      document.addEventListener("visibilitychange", this._visibilityHandler);
 
       /* Wrapper slider */
       const wrapper = document.createElement("div");
@@ -624,6 +735,10 @@
       this.headerName = document.createElement("span");
       this.headerName.className = "vs-player-header-name";
       headerLeft.appendChild(this.headerName);
+
+      this.headerCount = document.createElement("span");
+      this.headerCount.className = "vs-player-header-count";
+      headerLeft.appendChild(this.headerCount);
 
       header.appendChild(headerLeft);
 
@@ -673,6 +788,7 @@
       lb.appendChild(wrapper);
       document.body.appendChild(lb);
       this._lightbox = lb;
+      this.wrapper   = wrapper;
 
       this.setupScrollSnap();
       this.setupEventListeners();
@@ -722,6 +838,43 @@
         pi.className = "vs-play-indicator";
         pi.innerHTML = ICONS.play;
         slide.appendChild(pi);
+
+        /* Spinner de chargement */
+        const spinner = document.createElement("div");
+        spinner.className = "vs-spinner";
+        slide.appendChild(spinner);
+
+        /* Overlay d'erreur avec bouton retry */
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "vs-error-overlay";
+        const errorMsg = document.createElement("p");
+        errorMsg.className   = "vs-error-msg";
+        errorMsg.textContent = "Impossible de charger la vidéo";
+        errorDiv.appendChild(errorMsg);
+        const retryBtn = document.createElement("button");
+        retryBtn.className   = "vs-error-retry";
+        retryBtn.textContent = "Réessayer";
+        retryBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          slide.classList.remove("vs-error-state");
+          slide.classList.add("vs-loading");
+          video.src = story.videoSrc;
+          video.load();
+          video.play().catch(() => {});
+        });
+        errorDiv.appendChild(retryBtn);
+        slide.appendChild(errorDiv);
+
+        /* Événements chargement vidéo */
+        video.addEventListener("waiting", () => slide.classList.add("vs-loading"));
+        video.addEventListener("playing", () => slide.classList.remove("vs-loading"));
+        video.addEventListener("canplay", () => slide.classList.remove("vs-loading"));
+        video.addEventListener("error", () => {
+          slide.classList.remove("vs-loading");
+          slide.classList.add("vs-error-state");
+          this._clearAutoTimer();
+          this._clearProgTimer();
+        });
 
         /* Fin de vidéo → story suivante (ended ne bulle pas, listener direct) */
         video.addEventListener("ended", () => {
@@ -931,6 +1084,95 @@
           this.playBtn.innerHTML = video.paused ? ICONS.play : ICONS.pause;
         }
       });
+
+      /* ── Long press pour mettre en pause (Instagram-style) ── */
+      let longPressTimer  = null;
+      let longPressActive = false;
+
+      this.track.addEventListener("touchstart", () => {
+        longPressActive = false;
+        longPressTimer  = setTimeout(() => {
+          longPressActive = true;
+          this._pauseCurrent();
+        }, 350);
+      }, { passive: true });
+
+      this.track.addEventListener("touchmove", () => {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }, { passive: true });
+
+      this.track.addEventListener("touchend", (e) => {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        if (longPressActive) {
+          longPressActive = false;
+          e.preventDefault(); // Bloque le click synthétique post-long-press
+          const v = this._videoAt(this.currentIndex);
+          if (v) {
+            v.play().catch(() => {});
+            this._startProgTimer();
+            if (CONFIG.autoAdvance) this._startAutoTimer();
+          }
+          if (this.playBtn) this.playBtn.innerHTML = ICONS.pause;
+        }
+      }, { passive: false });
+
+      /* ── Barre de progression cliquable ── */
+      if (CONFIG.showProgress && this.progressBar) {
+        this.progressBar.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const seg = e.target.closest(".vs-progress-seg");
+          if (!seg) return;
+          const idx = parseInt(seg.dataset.index);
+          if (!isNaN(idx)) this.goTo(idx);
+        });
+      }
+
+      /* ── Swipe vers le bas pour fermer ── */
+      if (this.wrapper) {
+        let swipeStartY    = 0;
+        let swipeStartX    = 0;
+        let swipeDownActive = false;
+
+        this.wrapper.addEventListener("touchstart", (e) => {
+          swipeStartY     = e.touches[0].clientY;
+          swipeStartX     = e.touches[0].clientX;
+          swipeDownActive = false;
+        }, { passive: true });
+
+        this.wrapper.addEventListener("touchmove", (e) => {
+          const dy = e.touches[0].clientY - swipeStartY;
+          const dx = e.touches[0].clientX - swipeStartX;
+          if (!swipeDownActive && Math.abs(dy) > Math.abs(dx) && dy > 8) {
+            swipeDownActive = true;
+          }
+          if (swipeDownActive && dy > 0) {
+            this.wrapper.style.transform = `scale(1) translateY(${dy}px)`;
+            this.wrapper.style.opacity   = String(Math.max(0, 1 - dy / 300));
+          }
+        }, { passive: true });
+
+        this.wrapper.addEventListener("touchend", (e) => {
+          if (!swipeDownActive) return;
+          const dy = e.changedTouches[0].clientY - swipeStartY;
+          swipeDownActive = false;
+          if (dy > 100) {
+            this.wrapper.style.transform = "";
+            this.wrapper.style.opacity   = "";
+            this.closeLightbox();
+          } else {
+            this.wrapper.style.transition = "transform .3s cubic-bezier(.34,1.4,.64,1), opacity .3s";
+            this.wrapper.style.transform  = "scale(1)";
+            this.wrapper.style.opacity    = "1";
+            setTimeout(() => {
+              this.wrapper.style.transition = "";
+              this.wrapper.style.transform  = "";
+              this.wrapper.style.opacity    = "";
+            }, 320);
+          }
+        }, { passive: true });
+      }
     }
 
 
@@ -1020,6 +1262,11 @@
       if (this.headerName && story) {
         this.headerName.textContent = story.title || "";
       }
+      if (this.headerCount) {
+        this.headerCount.textContent = this.activeStories.length > 1
+          ? `${this.currentIndex + 1} / ${this.activeStories.length}`
+          : "";
+      }
 
       /* Mettre à jour icône play/pause */
       if (this.playBtn) {
@@ -1083,6 +1330,10 @@
       if (this._onKeyDown) {
         document.removeEventListener("keydown", this._onKeyDown);
         this._onKeyDown = null;
+      }
+      if (this._visibilityHandler) {
+        document.removeEventListener("visibilitychange", this._visibilityHandler);
+        this._visibilityHandler = null;
       }
       if (this.track) {
         this.track.querySelectorAll(".vs-video").forEach(v => { v.pause(); v.src = ""; });
