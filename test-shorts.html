@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Test — WP Video Shorts Carousel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 16px 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: clamp(18px, 4.5vw, 24px);
+      color: #222;
+      margin-bottom: 4px;
+      padding: 0 16px;
+    }
+
+    p.subtitle {
+      text-align: center;
+      color: #777;
+      font-size: clamp(12px, 3vw, 14px);
+      margin-bottom: clamp(16px, 4vw, 32px);
+      padding: 0 16px;
+    }
+
+    section {
+      max-width: 1200px;
+      margin: 0 auto clamp(24px, 5vw, 60px);
+    }
+
+    section h2 {
+      font-size: clamp(15px, 3.5vw, 18px);
+      color: #333;
+      margin-bottom: clamp(10px, 2.5vw, 16px);
+      padding-left: 16px;
+      border-left: 3px solid #e74c8b;
+    }
+
+    /* Carousel edge-to-edge sur mobile, padding sur desktop */
+    [data-wp-video-shorts] {
+      padding: 0 12px;
+    }
+
+    .dark-section {
+      background: #1a1a1a;
+      border-radius: 0;
+      padding: clamp(16px, 4vw, 30px) 0;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .dark-section h2 {
+      color: #fff;
+      padding-left: 16px;
+    }
+
+    .dark-section [data-wp-video-shorts] {
+      padding: 0 12px;
+    }
+
+    /* ─── SM 640px+ ─── */
+    @media (min-width: 640px) {
+      body { padding: 24px 0; }
+
+      [data-wp-video-shorts] { padding: 0 20px; }
+      .dark-section [data-wp-video-shorts] { padding: 0 20px; }
+
+      section h2 { padding-left: 24px; }
+      .dark-section h2 { padding-left: 24px; }
+
+      .dark-section {
+        border-radius: 12px;
+        margin-left: 16px;
+        margin-right: 16px;
+      }
+    }
+
+    /* ─── MD 768px+ ─── */
+    @media (min-width: 768px) {
+      body { padding: 32px 0; }
+
+      section { padding: 0; }
+      [data-wp-video-shorts] { padding: 0; }
+      .dark-section [data-wp-video-shorts] { padding: 0 24px; }
+
+      section h2 { padding-left: 4px; margin-left: 0; }
+
+      .dark-section {
+        border-radius: 16px;
+        padding: 30px 0;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .dark-section h2 { padding-left: 28px; }
+    }
+
+    /* ─── LG 1024px+ ─── */
+    @media (min-width: 1024px) {
+      body { padding: 40px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>WP Video Shorts — Carousel Slider</h1>
+  <p class="subtitle">Composant carousel vidéo vertical style PlayShorts / Instagram Reels</p>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- EXEMPLE 1 : Fond clair, 8 vidéos                     -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <section>
+    <h2>Nos best-sellers</h2>
+
+    <div data-wp-video-shorts>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/short1/280/500"
+        data-title="Nos patchs boutons">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/movie.mp4"
+        data-poster="https://picsum.photos/seed/short2/280/500"
+        data-title="Spray mains nettoyant">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/short3/280/500"
+        data-title="Sérum dos & fesses">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/movie.mp4"
+        data-poster="https://picsum.photos/seed/short4/280/500"
+        data-title="Notre blush">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/short5/280/500"
+        data-title="Spray mains lavande">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/movie.mp4"
+        data-poster="https://picsum.photos/seed/short6/280/500"
+        data-title="Notre highlighter">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/short7/280/500"
+        data-title="Patch nez purifiant">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/movie.mp4"
+        data-poster="https://picsum.photos/seed/short8/280/500"
+        data-title="Crème anti-âge">
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- EXEMPLE 2 : Fond sombre                              -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <section class="dark-section">
+    <h2>Épilation laser — Nos résultats</h2>
+
+    <div data-wp-video-shorts>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/laser1/280/500"
+        data-title="Résultats après 3 séances">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/movie.mp4"
+        data-poster="https://picsum.photos/seed/laser2/280/500"
+        data-title="Technologie de pointe">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/laser3/280/500"
+        data-title="Peau lisse et douce">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/movie.mp4"
+        data-poster="https://picsum.photos/seed/laser4/280/500"
+        data-title="Réservez maintenant">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/laser5/280/500"
+        data-title="Avant / Après">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/movie.mp4"
+        data-poster="https://picsum.photos/seed/laser6/280/500"
+        data-title="Sans douleur, sans repousse">
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- EXEMPLE 3 : Peu de cartes                             -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <section>
+    <h2>Soins visage — Nouveautés</h2>
+
+    <div data-wp-video-shorts>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/soin1/280/500"
+        data-title="Masque hydratant">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/movie.mp4"
+        data-poster="https://picsum.photos/seed/soin2/280/500"
+        data-title="Sérum vitamine C">
+      </div>
+      <div class="wvs-card"
+        data-video="https://www.w3schools.com/html/mov_bbb.mp4"
+        data-poster="https://picsum.photos/seed/soin3/280/500"
+        data-title="Gommage doux">
+      </div>
+    </div>
+  </section>
+
+  <script src="wp-video-shorts.js"></script>
+</body>
+</html>

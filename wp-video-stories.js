@@ -212,8 +212,7 @@
         visibility: visible !important;
         opacity: 1 !important;
         height: auto !important;
-        font-size: 13px !important;
-        color: #1a1a1a !important;
+        font-size: 18px !important;
         overflow: hidden !important;
         clip: auto !important;
         clip-path: none !important;
