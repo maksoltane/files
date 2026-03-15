@@ -73,8 +73,9 @@
       justify-content: center;
       gap: 14px;
       overflow-x: auto;
+      overflow-y: visible;
       scrollbar-width: none;
-      padding: 28px 28px 20px; /* 28px haut/côtés = pulse 24px + 4px marge */
+      padding: 28px 28px 24px; /* bas augmenté pour que le label ne soit jamais coupé */
       -webkit-overflow-scrolling: touch;
     }
     .vs-circles::-webkit-scrollbar { display: none; }
@@ -173,22 +174,54 @@
     .vs-circle-label {
       display: block !important;
       visibility: visible !important;
-      font-size: 11px !important;
-      font-weight: 500 !important;
-      color: #fff !important;
+      opacity: 1 !important;
+      font-size: 18px !important;
+      font-weight: 600 !important;
+      color: #1a1a1a !important;
+      text-shadow: none !important;
       text-align: center !important;
       max-width: 144px !important;
+      width: 144px !important;
+      height: auto !important;
+      min-height: 1em !important;
+      max-height: none !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-      line-height: 1.3 !important;
+      line-height: 1.4 !important;
       margin: 0 !important;
-      padding: 0 !important;
+      margin-top: 8px !important;
+      padding: 0 4px !important;
       background: none !important;
       text-decoration: none !important;
       text-transform: none !important;
       letter-spacing: 0 !important;
+      position: static !important;
+      clip: auto !important;
+      clip-path: none !important;
+      -webkit-clip-path: none !important;
+      pointer-events: none !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* Renforcement mobile — certains thèmes cachent les spans sur petits écrans */
+    @media (max-width: 768px) {
+      .vs-circle-label {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: auto !important;
+        font-size: 13px !important;
+        color: #1a1a1a !important;
+        overflow: hidden !important;
+        clip: auto !important;
+        clip-path: none !important;
+        -webkit-clip-path: none !important;
+      }
+      .vs-circle-item.vs-watched .vs-circle-label {
+        opacity: .45 !important;
+      }
     }
 
 
