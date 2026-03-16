@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(node -c wp-video-stories.js)",
-      "Bash(node -c wp-video-shorts.js)"
+      "Bash(node -c wp-video-shorts.js)",
+      "WebSearch"
     ]
   }
 }
