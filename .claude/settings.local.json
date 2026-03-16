@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -c wp-video-stories.js)",
+      "Bash(node -c wp-video-shorts.js)"
+    ]
+  }
+}

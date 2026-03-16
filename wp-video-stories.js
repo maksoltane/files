@@ -39,8 +39,6 @@
 (function () {
   "use strict";
 
-  console.log("[VS] Script chargé — WP Video Stories");
-
   /* ─── CONFIGURATION ─── */
   const CONFIG = {
     autoplay      : true,   // Lecture auto à l'ouverture
@@ -125,6 +123,10 @@
     }
 
     /* Keyframes pulse : box-shadow expand + fade (identique PlayShorts) */
+    /* Animation pausée par défaut — activée par JS via IntersectionObserver */
+    .vs-circle-ring { animation-play-state: paused; }
+    .vs-circle-ring.vs-pulse-active { animation-play-state: running; }
+
     @keyframes vs-ring-pulse {
       0% {
         box-shadow:
@@ -229,9 +231,7 @@
     .vs-lightbox {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.72);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      background: rgba(0,0,0,.92);
       z-index: 999999; /* au-dessus de la barre admin WordPress (99999) */
       display: flex;
       align-items: center;
@@ -239,6 +239,14 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity .25s ease;
+    }
+    /* backdrop-filter uniquement sur desktop (coûteux sur GPU mobile) */
+    @media (min-width: 768px) {
+      .vs-lightbox {
+        background: rgba(0,0,0,.72);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
     }
     .vs-lightbox.vs-open {
       opacity: 1;
@@ -613,9 +621,6 @@
     s.id = "vs-styles";
     s.textContent = CSS;
     document.head.appendChild(s);
-    console.log("[VS] CSS injecté dans <head>");
-  } else {
-    console.log("[VS] CSS déjà présent — injection ignorée");
   }
 
 
@@ -652,11 +657,7 @@
     }
 
     init() {
-      if (this.groups.length === 0) {
-        console.warn("[VS] Aucun groupe trouvé — vérifier les blocs [data-wp-video-stories]");
-        return;
-      }
-      console.log(`[VS] Instance créée — ${this.groups.length} groupe(s) chargé(s)`);
+      if (this.groups.length === 0) return;
       this.buildCircles();
     }
 
@@ -668,6 +669,16 @@
     buildCircles() {
       const row = this.container.querySelector(".vs-circles");
       if (!row) return;
+
+      /* Pulse animation : active uniquement quand visible dans le viewport */
+      const pulseObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const ring = entry.target.querySelector(".vs-circle-ring");
+          if (ring && !ring.classList.contains("vs-watched")) {
+            ring.classList.toggle("vs-pulse-active", entry.isIntersecting);
+          }
+        });
+      }, { threshold: 0 });
 
       this.groups.forEach((group, i) => {
         const item = group.circleItem;
@@ -685,6 +696,7 @@
         item.style.cursor = "pointer";
         item.addEventListener("click", () => this.openLightboxGroup(i));
         row.appendChild(item);
+        pulseObserver.observe(item);
       });
     }
 
@@ -831,7 +843,6 @@
        CONSTRUCTION DES SLIDES PAR GROUPE
     ══════════════════════════════════════════ */
     _buildGroupSlides(stories) {
-      console.log(`[VS] Construction de ${stories.length} slide(s)`);
       /* Vider les slides et vidéos précédentes */
       this.track.querySelectorAll(".vs-video").forEach(v => { v.pause(); v.src = ""; });
       this.track.innerHTML = "";
@@ -936,7 +947,6 @@
        OUVRIR / FERMER LIGHTBOX
     ══════════════════════════════════════════ */
     openLightboxGroup(groupIndex) {
-      console.log(`[VS] Ouverture groupe ${groupIndex} — "${this.groups[groupIndex]?.circleItem?.querySelector(".vs-circle-label")?.textContent || groupIndex}"`);
       this.buildLightbox(); // no-op si déjà construite
 
       this._clearAutoTimer();
@@ -976,7 +986,6 @@
 
     closeLightbox() {
       if (!this._lightboxOpen) return;
-      console.log("[VS] Fermeture lightbox");
       this._pauseCurrent();
       this._lightboxOpen = false;
       this._lightbox.classList.remove("vs-open");
@@ -998,8 +1007,7 @@
       if (video && !video.src) {
         video.src     = this.activeStories[i].videoSrc;
         video.preload = "auto";
-        video.load(); // démarre le téléchargement immédiatement
-        console.log(`[VS] Vidéo ${i} — load() déclenché : ${this.activeStories[i].videoSrc}`);
+        video.load();
       }
     }
 
@@ -1240,7 +1248,6 @@
     playStory(index) {
       const video = this._videoAt(index);
       if (!video) return;
-      console.log(`[VS] Lecture story ${index} — "${this.activeStories[index]?.title || index}"`);
 
       if (CONFIG.showProgress) {
         const fill = this.progressBar.querySelector(`.vs-progress-seg[data-index="${index}"] .vs-progress-fill`);
@@ -1379,11 +1386,7 @@
   /* ─── INITIALISATION AUTOMATIQUE ─── */
   function initAllStories() {
     const blocks = [...document.querySelectorAll("[data-wp-video-stories]:not([data-vs-ready])")];
-    console.log(`[VS] initAllStories — ${blocks.length} bloc(s) trouvé(s) dans le DOM`);
-    if (blocks.length === 0) {
-      console.warn("[VS] Aucun bloc [data-wp-video-stories] trouvé — script inactif");
-      return;
-    }
+    if (blocks.length === 0) return;
 
     /* Construire les groupes — un groupe par bloc */
     const groups = blocks.map((block) => {
@@ -1414,7 +1417,6 @@
 
     combined.setAttribute("data-vs-ready", "");
     combined._vsInstance = new WPVideoStories(combined, groups);
-    console.log("[VS] Initialisation terminée ✓", combined._vsInstance);
   }
 
   if (document.readyState === "loading") {

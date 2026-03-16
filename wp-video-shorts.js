@@ -328,9 +328,7 @@
     .wvs-lightbox {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.72);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      background: rgba(0,0,0,.92);
       z-index: 999999;
       display: flex;
       align-items: center;
@@ -338,6 +336,14 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity .25s ease;
+    }
+    /* backdrop-filter uniquement sur desktop (coûteux sur GPU mobile) */
+    @media (min-width: 768px) {
+      .wvs-lightbox {
+        background: rgba(0,0,0,.72);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
     }
     .wvs-lightbox.wvs-lb-open {
       opacity: 1;
@@ -991,7 +997,11 @@
       wrapper.appendChild(arrowR);
     }
 
-    const ro = new ResizeObserver(() => updateArrows());
+    let roRaf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(roRaf);
+      roRaf = requestAnimationFrame(updateArrows);
+    });
     ro.observe(wrapper);
     requestAnimationFrame(updateArrows);
 
@@ -1080,9 +1090,17 @@
     cardsEl.addEventListener("touchmove", onPointerMove, { passive: true });
     cardsEl.addEventListener("touchend", onPointerUp, { passive: true });
 
-    cardsEl.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("mousemove", onPointerMove);
-    document.addEventListener("mouseup", onPointerUp);
+    /* Mouse : attach move/up uniquement pendant le drag (évite listeners inutiles) */
+    cardsEl.addEventListener("mousedown", (e) => {
+      onPointerDown(e);
+      const onMouseUp = (ev) => {
+        onPointerUp(ev);
+        document.removeEventListener("mousemove", onPointerMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+      document.addEventListener("mousemove", onPointerMove);
+      document.addEventListener("mouseup", onMouseUp);
+    });
     cardsEl.addEventListener("dragstart", (e) => e.preventDefault());
 
     cardsEl.addEventListener("click", (e) => {
